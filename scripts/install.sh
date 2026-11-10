@@ -46,6 +46,13 @@ install -m 0755 "$work/ctunnel" "$BIN"
 ok "نصب شد: $BIN (نسخه ${VER})"
 
 echo
-"$BIN" menu || true
+"$BIN" version || true
+# Show the banner, but do NOT launch the interactive menu here: when installed via
+# `curl ... | bash`, stdin is the pipe (not a terminal), so the menu would have no input.
+if [ -t 0 ]; then
+  "$BIN" menu || true
+else
+  "$BIN" -h 2>/dev/null | head -8 || true
+fi
 echo
-ok "برای شروع دوباره فقط «${cyan}ctunnel${rst}» را اجرا کن."
+ok "Setup is installed. Run ${cyan}ctunnel${rst} in your shell to open the menu."

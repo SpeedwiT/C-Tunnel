@@ -48,6 +48,10 @@ if ! command -v ip >/dev/null 2>&1; then
 fi
 
 echo
-"$BIN" menu || true
+if [ -t 0 ]; then
+  "$BIN" menu || true
+else
+  "$BIN" version || true
+fi
 echo
-ok "Run ${cyan}ctunnel${rst} any time to open the menu again."
+ok "Run ${cyan}ctunnel${rst} any time to open the menu."

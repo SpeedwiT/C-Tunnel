@@ -22,7 +22,12 @@ func ask(prompt, def string) string {
 	} else {
 		fmt.Printf("%s: ", prompt)
 	}
-	line, _ := stdin.ReadString('\n')
+	line, err := stdin.ReadString('\n')
+	if err != nil && strings.TrimSpace(line) == "" {
+		// No interactive input (EOF — e.g. run through a pipe). Exit cleanly instead of looping.
+		fmt.Println("\nNo terminal input — run `ctunnel` directly in a shell to use the menu.")
+		os.Exit(0)
+	}
 	line = strings.TrimSpace(line)
 	if line == "" {
 		return def
