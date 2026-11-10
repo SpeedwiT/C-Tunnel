@@ -7,12 +7,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SpeedwiT/c-tunnel/internal/broker"
 	"github.com/SpeedwiT/c-tunnel/internal/config"
 	"github.com/SpeedwiT/c-tunnel/internal/linktest"
 	"github.com/SpeedwiT/c-tunnel/internal/setupcode"
 	"github.com/SpeedwiT/c-tunnel/internal/transport"
 	"github.com/SpeedwiT/c-tunnel/internal/ui"
 )
+
+// cmdBroker runs the rendezvous broker: both servers dial out to it, it pairs and pipes them.
+func cmdBroker(args []string) {
+	fs := flag.NewFlagSet("broker", flag.ExitOnError)
+	listen := fs.String("listen", ":9000", "address to listen on")
+	_ = fs.Parse(args)
+	fmt.Printf("%sC Tunnel broker روی %s%s — هر دو سرور به این آدرس وصل می‌شوند.\n", ui.Green, *listen, ui.Reset)
+	if err := broker.Serve(*listen); err != nil {
+		fatal(err)
+	}
+}
 
 // linkTestBasePort is where the Link Test probe listeners start; each transport takes the next port.
 const linkTestBasePort = 8900
@@ -23,6 +35,8 @@ func cmdSetupCode(args []string) {
 	path := fs.String("config", config.DefaultPath(), "config file")
 	addr := fs.String("addr", "", "address the other server relates to (host:port). "+
 		"reverse: this server's public ip:port; direct: the foreign server's ip:port")
+	short := fs.Bool("short", false, "mint a short C-Tunnel-XXXX code via the broker")
+	brokerAddr := fs.String("broker", "", "broker address for -short (default: config broker)")
 	_ = fs.Parse(args)
 
 	cfg, err := config.Load(*path)
@@ -36,7 +50,25 @@ func cmdSetupCode(args []string) {
 	if a == "" || strings.HasPrefix(a, ":") {
 		fatal(fmt.Errorf("could not determine the address; pass -addr host:port"))
 	}
-	code := setupcode.Encode(setupcode.FromRelay(cfg, a))
+	setup := setupcode.FromRelay(cfg, a)
+	if *short {
+		b := *brokerAddr
+		if b == "" {
+			b = cfg.Broker
+		}
+		if b == "" {
+			fatal(fmt.Errorf("short code needs a broker; pass -broker host:port"))
+		}
+		code, err := setupcode.MintShort(b, setup)
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Printf("\n%sکد کوتاه ستاپ (۳۰ دقیقه معتبر):%s\n", ui.Bold, ui.Reset)
+		fmt.Printf("  %s%s%s\n", ui.Green, code, ui.Reset)
+		fmt.Printf("  روی سرور خارج: %sctunnel join %s -broker %s%s\n\n", ui.Cyan, code, b, ui.Reset)
+		return
+	}
+	code := setupcode.Encode(setup)
 	fmt.Println()
 	fmt.Printf("%sکد ستاپ سرور خارج (روی سرور خارج اجرا کن):%s\n", ui.Bold, ui.Reset)
 	fmt.Printf("  %sctunnel join %s%s\n\n", ui.Cyan, code, ui.Reset)
@@ -59,12 +91,22 @@ func defaultPeerAddr(cfg *config.Config) string {
 func cmdJoin(args []string) {
 	fs := flag.NewFlagSet("join", flag.ExitOnError)
 	path := fs.String("config", config.DefaultPath(), "config file")
+	brokerAddr := fs.String("broker", "", "broker address (required for a short C-Tunnel-XXXX code)")
 	_ = fs.Parse(args)
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fatal(fmt.Errorf("usage: ctunnel join <setup-code>"))
+		fatal(fmt.Errorf("usage: ctunnel join <setup-code> [-broker host:port]"))
 	}
-	s, err := setupcode.Decode(rest[0])
+	var s setupcode.Setup
+	var err error
+	if setupcode.IsShort(rest[0]) {
+		if *brokerAddr == "" {
+			fatal(fmt.Errorf("a short code needs the broker: ctunnel join %s -broker host:port", rest[0]))
+		}
+		s, err = setupcode.ResolveShort(*brokerAddr, rest[0])
+	} else {
+		s, err = setupcode.Decode(rest[0])
+	}
 	if err != nil {
 		fatal(err)
 	}

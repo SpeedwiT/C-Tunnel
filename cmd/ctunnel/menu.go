@@ -131,13 +131,28 @@ func wizardRelay() {
 		cfg.Peer = fip + ":" + fport
 		advAddr = "0.0.0.0:" + fport
 	}
+	if tr == "crdv" {
+		cfg.Broker = ask("آدرس بروکر (broker host:port)", cfg.Broker)
+	}
 	if err := cfg.Validate(); err != nil {
 		fmt.Println(ui.Red+"خطا:"+ui.Reset, err)
 		return
 	}
 	saveAndMaybeService(cfg)
-	code := setupcode.Encode(setupcode.FromRelay(cfg, advAddr))
-	fmt.Printf("\n%s✓ سرور ایران آماده شد.%s این کد را روی سرور خارج اجرا کن:\n", ui.Green, ui.Reset)
+	setup := setupcode.FromRelay(cfg, advAddr)
+	fmt.Printf("\n%s✓ سرور ایران آماده شد.%s کد ستاپ را روی سرور خارج اجرا کن:\n", ui.Green, ui.Reset)
+	// Prefer a short code when a broker is available.
+	if cfg.Broker != "" && ask("کد کوتاه بسازم؟ (نیاز به بروکر) (y/n)", "y") == "y" {
+		code, err := setupcode.MintShort(cfg.Broker, setup)
+		if err != nil {
+			fmt.Println(ui.Yellow+"ساخت کد کوتاه ناموفق:"+ui.Reset, err)
+		} else {
+			fmt.Printf("  %s%s%s   (۳۰ دقیقه معتبر)\n", ui.Green, code, ui.Reset)
+			fmt.Printf("  روی خارج: %sctunnel join %s -broker %s%s\n", ui.Cyan, code, cfg.Broker, ui.Reset)
+			return
+		}
+	}
+	code := setupcode.Encode(setup)
 	fmt.Printf("  %sctunnel join %s%s\n", ui.Cyan, code, ui.Reset)
 	fmt.Printf("\nیا نصب دستی: نقش exit، همان PSK و ترنسپورت %s.\n", tr)
 }
@@ -149,7 +164,14 @@ func wizardExit() {
 		fmt.Println(ui.Yellow + "کدی وارد نشد." + ui.Reset)
 		return
 	}
-	s, err := setupcode.Decode(code)
+	var s setupcode.Setup
+	var err error
+	if setupcode.IsShort(code) {
+		b := ask("آدرس بروکر (broker host:port)", "")
+		s, err = setupcode.ResolveShort(b, code)
+	} else {
+		s, err = setupcode.Decode(code)
+	}
 	if err != nil {
 		fmt.Println(ui.Red+"کد نامعتبر:"+ui.Reset, err)
 		return

@@ -64,10 +64,21 @@ type Config struct {
 	PSK       string    `json:"psk"`              // shared secret (base64, 32 bytes)
 	Forwards  []Forward `json:"forwards"`
 	SNI       string    `json:"sni,omitempty"` // transport hint: TLS server name to present/expect
+	// Broker is the rendezvous relay host:port for the C-RDV transport (both servers dial out to it).
+	Broker string `json:"broker,omitempty"`
 	// TunSubnet is the private /30 for ModeDirect, e.g. "10.72.0.1/30" (relay) — the exit takes .2.
-	TunSubnet string `json:"tun_subnet,omitempty"`
-	Creator   string `json:"creator,omitempty"`
-	GitHub    string `json:"github,omitempty"`
+	TunSubnet string    `json:"tun_subnet,omitempty"`
+	Telegram  *Telegram `json:"telegram,omitempty"`
+	Creator   string    `json:"creator,omitempty"`
+	GitHub    string    `json:"github,omitempty"`
+}
+
+// Telegram configures optional status/ping notifications to a Telegram chat.
+type Telegram struct {
+	Enabled  bool   `json:"enabled"`
+	Token    string `json:"token"`
+	ChatID   string `json:"chat_id"`
+	Interval int    `json:"interval_sec,omitempty"` // heartbeat period; 0 → default (300s)
 }
 
 // DefaultPath is where the config lives on a server install.
@@ -105,17 +116,28 @@ func (c *Config) Save(path string) error {
 }
 
 func (c *Config) Validate() error {
-	switch c.Role {
-	case RoleRelay:
-		if c.Listen == "" {
-			return fmt.Errorf("relay needs a listen address")
+	// The rendezvous transport has both sides dial out to a broker, so neither a listen nor a peer
+	// address is required — only the broker.
+	if c.Transport == "crdv" {
+		if c.Broker == "" {
+			return fmt.Errorf("the crdv transport needs a broker address")
 		}
-	case RoleExit:
-		if c.Peer == "" {
-			return fmt.Errorf("exit needs a peer (relay) address")
+		if c.Role != RoleRelay && c.Role != RoleExit {
+			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
 		}
-	default:
-		return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
+	} else {
+		switch c.Role {
+		case RoleRelay:
+			if c.Listen == "" {
+				return fmt.Errorf("relay needs a listen address")
+			}
+		case RoleExit:
+			if c.Peer == "" {
+				return fmt.Errorf("exit needs a peer (relay) address")
+			}
+		default:
+			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
+		}
 	}
 	if c.PSK == "" {
 		return fmt.Errorf("psk is required")

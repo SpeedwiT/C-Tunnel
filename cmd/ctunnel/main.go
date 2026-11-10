@@ -39,6 +39,8 @@ func main() {
 		cmdSetupCode(os.Args[2:])
 	case "join":
 		cmdJoin(os.Args[2:])
+	case "broker":
+		cmdBroker(os.Args[2:])
 	case "linktest-server":
 		cmdLinktestServer(os.Args[2:])
 	case "linktest", "test":

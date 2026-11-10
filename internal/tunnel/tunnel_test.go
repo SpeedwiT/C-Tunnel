@@ -47,6 +47,9 @@ func echoServer(t *testing.T) string {
 func TestAllTransportsForward(t *testing.T) {
 	for _, name := range transport.Names() {
 		name := name
+		if name == "crdv" {
+			continue // rendezvous needs a broker; covered by TestRendezvousForward
+		}
 		t.Run(name, func(t *testing.T) {
 			target := echoServer(t)
 			transportPort := freePort(t)
