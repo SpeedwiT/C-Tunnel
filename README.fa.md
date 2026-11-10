@@ -18,8 +18,23 @@
 curl -fsSL https://raw.githubusercontent.com/SpeedwiT/C-Tunnel/main/scripts/install.sh | sudo bash
 ```
 
-> اگر سرور ایران دسترسی خوبی به GitHub ندارد، از **[نصب دستی/آفلاین](docs/MANUAL_INSTALL.md)** استفاده
-> کن: یک باینری آماده دانلود می‌کنی و با یک اسکریپت نصب می‌شود (بدون نیاز به کامپایل).
+### نصب دستی / آفلاین (سرور ایران که دسترسی‌اش به GitHub خوب نیست)
+
+یک **فایل آمادهٔ tar.gz** دانلود کن — از صفحهٔ [Releases](https://github.com/SpeedwiT/C-Tunnel/releases)
+یا مستقیم از پوشهٔ [`dist/`](dist) — و نصبش کن. بدون Go، بدون git، بدون کامپایل.
+
+```bash
+# ۱) معماری: amd64 (اکثر سرورها) یا arm64  ->  uname -m
+curl -fLO https://raw.githubusercontent.com/SpeedwiT/C-Tunnel/main/dist/ctunnel-linux-amd64.tar.gz
+
+# ۲) باز کردن و نصب
+tar -xzf ctunnel-linux-amd64.tar.gz
+cd ctunnel-linux-amd64
+sudo bash install.sh ./ctunnel        # ctunnel را نصب و منو را باز می‌کند
+```
+
+اگر حتی `curl` هم بسته است، فایل `.tar.gz` را روی هر دستگاهی دانلود کن و با `scp` به سرور بفرست.
+راهنمای کامل گام‌به‌گام: **[docs/MANUAL_INSTALL.md](docs/MANUAL_INSTALL.md)**.
 
 باینری را می‌سازد، `ctunnel` را نصب می‌کند و منو را باز می‌کند:
 

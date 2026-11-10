@@ -30,8 +30,23 @@
 curl -fsSL https://raw.githubusercontent.com/SpeedwiT/C-Tunnel/main/scripts/install.sh | sudo bash
 ```
 
-> On an Iran server that can't reach GitHub to build, use the
-> **[manual / offline install](docs/MANUAL_INSTALL.md)**: download a prebuilt binary and run one script.
+### Manual / offline install (Iran servers that can't reach GitHub to build)
+
+Download a **prebuilt tarball** — from the [Releases](https://github.com/SpeedwiT/C-Tunnel/releases)
+page, or straight from the repo's [`dist/`](dist) folder — then install it. No Go, no git, no build.
+
+```bash
+# 1) pick your CPU: amd64 (most servers) or arm64  ->  uname -m
+curl -fLO https://raw.githubusercontent.com/SpeedwiT/C-Tunnel/main/dist/ctunnel-linux-amd64.tar.gz
+
+# 2) extract and install
+tar -xzf ctunnel-linux-amd64.tar.gz
+cd ctunnel-linux-amd64
+sudo bash install.sh ./ctunnel        # installs /usr/local/bin/ctunnel, then opens the menu
+```
+
+If even `curl` is blocked, download the `.tar.gz` on any device and copy it over with `scp`. Full
+step-by-step guide (English + فارسی): **[docs/MANUAL_INSTALL.md](docs/MANUAL_INSTALL.md)**.
 
 It builds the binary, installs `ctunnel`, and opens the menu:
 

@@ -3,6 +3,7 @@
 !/dist/ctunnel-linux-amd64
 !/dist/ctunnel-linux-arm64
 !/dist/SHA256SUMS
+!/dist/*.tar.gz
 *.test
 *.out
 .env
