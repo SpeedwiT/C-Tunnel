@@ -7,7 +7,7 @@ set -euo pipefail
 REPO="https://github.com/SpeedwiT/C-Tunnel.git"
 BRANCH="${CTUNNEL_BRANCH:-main}"
 BIN="/usr/local/bin/ctunnel"
-GO_VER="1.22.5"
+GO_VER="1.26.2"
 
 cyan=$'\033[36m'; green=$'\033[32m'; yellow=$'\033[33m'; red=$'\033[31m'; rst=$'\033[0m'
 say()  { echo "${cyan}»${rst} $*"; }

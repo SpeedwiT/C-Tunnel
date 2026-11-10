@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fa" dir="ltr">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:'Vazirmatn';src:url('assets/fonts/Vazirmatn-Regular.woff2') format('woff2');font-weight:400;}
+  @font-face{font-family:'Vazirmatn';src:url('assets/fonts/Vazirmatn-Medium.woff2') format('woff2');font-weight:500;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1120px;height:720px;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#1b2a4a 0%,#0e1b33 50%,#16103a 100%)}
+  .win{width:1000px;border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);background:#0c0f16}
+  .bar{height:44px;display:flex;align-items:center;padding:0 16px;gap:8px;
+    background:linear-gradient(#2a2f3a,#20242e);border-bottom:1px solid #000}
+  .light{width:13px;height:13px;border-radius:50%}
+  .r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+  .title{flex:1;text-align:center;color:#aab3c2;font-family:'JetBrains Mono',monospace;font-size:14px;margin-right:46px}
+  .term{padding:22px 26px 28px;font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:16px;line-height:1.6;color:#c6d2e2}
+  .dim{color:#6b7689}.cy{color:#22d3ee}.gr{color:#30d158}.rd{color:#ff6b6b}.wh{color:#e8f0fb}
+  .fa{font-family:'Vazirmatn',sans-serif;font-weight:500}
+  .row{white-space:pre}
+  .prompt{color:#30d158}
+</style>
+</head>
+<body>
+  <div class="win">
+    <div class="bar">
+      <span class="light r"></span><span class="light y"></span><span class="light g"></span>
+      <span class="title">ctunnel — root@foreign-server — 100×30</span>
+    </div>
+    <div class="term">
+      <div class="row"><span class="prompt">root@foreign</span>:<span class="cy">~</span># ctunnel linktest -host 203.0.113.9</div>
+      <div class="row fa">در حال تست ۹ ترنسپورت به 203.0.113.9 ...</div>
+      <div class="row">&nbsp;</div>
+      <div class="row dim">  transport cat      connect    ping       status</div>
+      <div class="row dim">  ────────────────────────────────────────────────────</div>
+      <div class="row">  <span class="cy">cquic    </span> udp      38ms       41ms       <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">crdv     </span> special  70ms       88ms       <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">ckcp     </span> udp      44ms       96ms       <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">ctls     </span> tcp      52ms       105ms      <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">chttp    </span> tcp      58ms       112ms      <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">cstorm   </span> udp      46ms       130ms      <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">cdns     </span> special  120ms      240ms      <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">cws      </span> tcp      61ms       260ms      <span class="gr">OK</span></div>
+      <div class="row">  <span class="cy">cfrag    </span> tcp      -          -          <span class="rd">fail</span> <span class="dim">(timeout)</span></div>
+      <div class="row">&nbsp;</div>
+      <div class="row"><span class="fa">  بهترین ترنسپورت: </span><span class="wh">cquic</span><span class="fa"> — برای استفاده: </span>ctunnel switch cquic</div>
+    </div>
+  </div>
+</body>
+</html>
