@@ -63,7 +63,8 @@ type Config struct {
 	Peer      string    `json:"peer,omitempty"`   // exit: relay address to dial, e.g. 1.2.3.4:7000
 	PSK       string    `json:"psk"`              // shared secret (base64, 32 bytes)
 	Forwards  []Forward `json:"forwards"`
-	SNI       string    `json:"sni,omitempty"` // transport hint: TLS server name to present/expect
+	SNI       string    `json:"sni,omitempty"`       // transport hint: TLS server name to present/expect
+	SpoofSrc  string    `json:"spoof_src,omitempty"` // cspoof: the forged source IP this side sends from
 	// Broker is the rendezvous relay host:port for the C-RDV transport (both servers dial out to it).
 	Broker string `json:"broker,omitempty"`
 	// Members are the sub-transports bonded by the "cbond" multipath transport (e.g. ["cquic","ctls"]).
@@ -124,6 +125,14 @@ func (c *Config) Validate() error {
 	if c.Transport == "crdv" {
 		if c.Broker == "" {
 			return fmt.Errorf("the crdv transport needs a broker address")
+		}
+		if c.Role != RoleRelay && c.Role != RoleExit {
+			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
+		}
+	} else if c.Transport == "cspoof" {
+		// Forged-source transport: both sides are symmetric and must know the other's real address.
+		if c.Peer == "" {
+			return fmt.Errorf("the cspoof transport needs the other server's real address (peer)")
 		}
 		if c.Role != RoleRelay && c.Role != RoleExit {
 			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)

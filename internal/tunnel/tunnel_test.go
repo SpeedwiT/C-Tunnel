@@ -50,6 +50,9 @@ func TestAllTransportsForward(t *testing.T) {
 		if name == "crdv" {
 			continue // rendezvous needs a broker; covered by TestRendezvousForward
 		}
+		if name == "cspoof" {
+			continue // forged-source transport needs peer-on-both-sides + root; see cspoof tests
+		}
 		t.Run(name, func(t *testing.T) {
 			target := echoServer(t)
 			transportPort := freePort(t)
