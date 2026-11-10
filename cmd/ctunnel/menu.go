@@ -108,12 +108,25 @@ func askForwards() []config.Forward {
 func wizardRelay() {
 	fmt.Printf("\n%s── نصب سرور ایران ──%s\n", ui.Bold, ui.Reset)
 	mode := chooseMode()
-	tr := chooseTransport()
+	var tr string
+	var members []string
+	if ask("باندینگ چند ترنسپورت هم‌زمان؟ (cbond) (y/n)", "n") == "y" {
+		tr = "cbond"
+		list := ask("ترنسپورت‌های عضو (با کاما)", "cquic,ctls,ckcp")
+		for _, m := range strings.Split(list, ",") {
+			if m = strings.TrimSpace(m); m != "" {
+				members = append(members, m)
+			}
+		}
+	} else {
+		tr = chooseTransport()
+	}
 	listenPort := ask("پورت تونل روی ایران", "7000")
 	cfg := &config.Config{
 		Role:      config.RoleRelay,
 		Mode:      mode,
 		Transport: tr,
+		Members:   members,
 		Listen:    ":" + listenPort,
 		PSK:       config.GenPSK(),
 		SNI:       ask("SNI (دامنهٔ تقلبی برای TLS)", "www.cloudflare.com"),

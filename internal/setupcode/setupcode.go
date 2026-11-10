@@ -30,16 +30,17 @@ var shortAlphabet = base32.NewEncoding("0123456789ABCDEFGHJKMNPQRSTVWXYZ").WithP
 
 // Setup is the compact payload carried by a setup code. Field names are short to keep the code small.
 type Setup struct {
-	V         int               `json:"v"`           // format version
-	Mode      string            `json:"m"`           // reverse | direct
-	Transport string            `json:"t"`           // transport name
-	PSK       string            `json:"k"`           // shared secret (base64)
-	SNI       string            `json:"s,omitempty"` // TLS server-name hint
-	Peer      string            `json:"p"`           // address the receiver relates to (see ExitConfig/RelayDialInfo)
-	Broker    string            `json:"b,omitempty"` // rendezvous broker for the crdv transport
-	TunSubnet string            `json:"n,omitempty"` // direct mode /30
-	Forwards  []config.Forward  `json:"f,omitempty"` // informational for the operator; relay drives routing
-	Extra     map[string]string `json:"x,omitempty"` // forward-compat room
+	V         int               `json:"v"`            // format version
+	Mode      string            `json:"m"`            // reverse | direct
+	Transport string            `json:"t"`            // transport name
+	PSK       string            `json:"k"`            // shared secret (base64)
+	SNI       string            `json:"s,omitempty"`  // TLS server-name hint
+	Peer      string            `json:"p"`            // address the receiver relates to (see ExitConfig/RelayDialInfo)
+	Broker    string            `json:"b,omitempty"`  // rendezvous broker for the crdv transport
+	Members   []string          `json:"ms,omitempty"` // cbond member transports
+	TunSubnet string            `json:"n,omitempty"`  // direct mode /30
+	Forwards  []config.Forward  `json:"f,omitempty"`  // informational for the operator; relay drives routing
+	Extra     map[string]string `json:"x,omitempty"`  // forward-compat room
 }
 
 // FromRelay builds the setup code payload the FOREIGN (exit) server needs, given the Iran (relay)
@@ -57,6 +58,7 @@ func FromRelay(cfg *config.Config, publicAddr string) Setup {
 		SNI:       cfg.SNI,
 		Peer:      publicAddr,
 		Broker:    cfg.Broker,
+		Members:   cfg.Members,
 		TunSubnet: cfg.TunSubnet,
 		Forwards:  cfg.Forwards,
 	}
@@ -116,8 +118,14 @@ func (s Setup) ExitConfig() *config.Config {
 		PSK:       s.PSK,
 		SNI:       s.SNI,
 		Broker:    s.Broker,
+		Members:   s.Members,
 		TunSubnet: s.TunSubnet,
 		Forwards:  s.Forwards,
+	}
+	if c.Transport == "cbond" {
+		c.Role = config.RoleExit
+		c.Peer = s.Peer
+		return c
 	}
 	if c.Transport == "crdv" {
 		// Both sides dial the broker; no listen/peer needed.

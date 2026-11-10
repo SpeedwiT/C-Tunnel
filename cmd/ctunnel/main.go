@@ -89,6 +89,10 @@ func cmdRun(args []string) {
 	defer stop()
 
 	switch {
+	case cfg.Transport == "cbond" && cfg.Role == config.RoleRelay:
+		err = tunnel.RunBondRelay(ctx, cfg) // bonded multipath across several transports
+	case cfg.Transport == "cbond" && cfg.Role == config.RoleExit:
+		err = tunnel.RunBondExit(ctx, cfg)
 	case cfg.Mode == config.ModeDirect:
 		err = tunnel.RunDirect(ctx, cfg) // full IP tunnel; role decides who dials
 	case cfg.Role == config.RoleRelay:
