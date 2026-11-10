@@ -20,7 +20,7 @@ type cquic struct{}
 func (cquic) Name() string     { return "cquic" }
 func (cquic) Category() string { return CatUDP }
 func (cquic) Description() string {
-	return "QUIC/HTTP3؛ سریع‌ترین، مهاجرت IP/پورت"
+	return "QUIC/HTTP3; fastest, migrates across IP/port"
 }
 
 func quicConfig() *quic.Config {

@@ -30,40 +30,40 @@ func ask(prompt, def string) string {
 	return line
 }
 
-// menu is the interactive terminal entrypoint (ctunnel with no args).
+// runMenu is the interactive terminal entrypoint (ctunnel with no args).
 func runMenu() {
 	fmt.Print(ui.Banner(version, github, creator))
 	for {
 		fmt.Printf(`
-  %s۱%s) نصب سرور ایران (Relay)
-  %s۲%s) نصب سرور خارج (Exit) — با کد ستاپ
-  %s۳%s) مدیریت: وضعیت، Link Test، تغییر ترنسپورت
-  %s۴%s) لیست ترنسپورت‌ها
-  %s۵%s) خروج
+  %s1%s) Install Iran server (Relay)
+  %s2%s) Install Foreign server (Exit) — with a setup code
+  %s3%s) Manage: status, Link Test, change transport
+  %s4%s) List transports
+  %s5%s) Quit
 `, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
-		switch ask("انتخاب", "") {
-		case "1", "۱":
+		switch ask("Choice", "") {
+		case "1":
 			wizardRelay()
-		case "2", "۲":
+		case "2":
 			wizardExit()
-		case "3", "۳":
+		case "3":
 			manageMenu()
-		case "4", "۴":
+		case "4":
 			printTransports()
-		case "5", "۵", "q", "exit":
+		case "5", "q", "exit":
 			return
 		}
 	}
 }
 
-// chooseTransport walks the user through category → transport.
+// chooseTransport walks the user through category -> transport.
 func chooseTransport() string {
 	grouped := transport.Grouped()
-	fmt.Printf("\n%sنوع ترنسپورت را انتخاب کن:%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("\n%sChoose a transport category:%s\n", ui.Bold, ui.Reset)
 	for i, cat := range transport.CategoryOrder {
 		fmt.Printf("  %s%d%s) %s\n", ui.Cyan, i+1, ui.Reset, transport.CategoryTitle[cat])
 	}
-	ci, _ := strconv.Atoi(ask("دسته", "1"))
+	ci, _ := strconv.Atoi(ask("Category", "1"))
 	if ci < 1 || ci > len(transport.CategoryOrder) {
 		ci = 1
 	}
@@ -73,7 +73,7 @@ func chooseTransport() string {
 	for i, t := range list {
 		fmt.Printf("  %s%d%s) %-8s %s\n", ui.Cyan, i+1, ui.Reset, t.Name(), t.Description())
 	}
-	ti, _ := strconv.Atoi(ask("ترنسپورت", "1"))
+	ti, _ := strconv.Atoi(ask("Transport", "1"))
 	if ti < 1 || ti > len(list) {
 		ti = 1
 	}
@@ -81,10 +81,10 @@ func chooseTransport() string {
 }
 
 func chooseMode() string {
-	fmt.Printf("\n%sحالت تونل:%s\n", ui.Bold, ui.Reset)
-	fmt.Printf("  %s1%s) معکوس (Reverse) — خارج به ایران وصل می‌شود؛ ایران یک پورت باز دارد\n", ui.Cyan, ui.Reset)
-	fmt.Printf("  %s2%s) مستقیم (Direct) — ایران بیرون زنگ می‌زند؛ هیچ پورت ورودی روی ایران لازم نیست\n", ui.Cyan, ui.Reset)
-	if ask("حالت", "1") == "2" {
+	fmt.Printf("\n%sTunnel mode:%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("  %s1%s) Reverse — the foreign server dials in to Iran; Iran needs one open port\n", ui.Cyan, ui.Reset)
+	fmt.Printf("  %s2%s) Direct  — Iran dials out; no inbound port on Iran (full IP tunnel)\n", ui.Cyan, ui.Reset)
+	if ask("Mode", "1") == "2" {
 		return config.ModeDirect
 	}
 	return config.ModeReverse
@@ -92,27 +92,27 @@ func chooseMode() string {
 
 func askForwards() []config.Forward {
 	var fwds []config.Forward
-	fmt.Printf("\n%sپورت‌های فوروارد%s (برای اتمام، نام را خالی بگذار)\n", ui.Bold, ui.Reset)
+	fmt.Printf("\n%sForwarded ports%s (leave the name empty to finish)\n", ui.Bold, ui.Reset)
 	for {
-		name := ask("نام فوروارد", "")
+		name := ask("Forward name", "")
 		if name == "" {
 			break
 		}
-		lp, _ := strconv.Atoi(ask("پورت ورودی (روی سرور ایران)", "443"))
-		target := ask("مقصد روی سرور خارج (host:port)", "127.0.0.1:443")
+		lp, _ := strconv.Atoi(ask("Listen port (on the Iran server)", "443"))
+		target := ask("Target on the foreign server (host:port)", "127.0.0.1:443")
 		fwds = append(fwds, config.Forward{Name: name, Listen: lp, Target: target, Proto: "tcp"})
 	}
 	return fwds
 }
 
 func wizardRelay() {
-	fmt.Printf("\n%s── نصب سرور ایران ──%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("\n%s-- Install Iran server --%s\n", ui.Bold, ui.Reset)
 	mode := chooseMode()
 	var tr string
 	var members []string
-	if ask("باندینگ چند ترنسپورت هم‌زمان؟ (cbond) (y/n)", "n") == "y" {
+	if ask("Bond several transports at once? (cbond) (y/n)", "n") == "y" {
 		tr = "cbond"
-		list := ask("ترنسپورت‌های عضو (با کاما)", "cquic,ctls,ckcp")
+		list := ask("Member transports (comma-separated)", "cquic,ctls,ckcp")
 		for _, m := range strings.Split(list, ",") {
 			if m = strings.TrimSpace(m); m != "" {
 				members = append(members, m)
@@ -121,7 +121,7 @@ func wizardRelay() {
 	} else {
 		tr = chooseTransport()
 	}
-	listenPort := ask("پورت تونل روی ایران", "7000")
+	listenPort := ask("Tunnel port on Iran", "7000")
 	cfg := &config.Config{
 		Role:      config.RoleRelay,
 		Mode:      mode,
@@ -129,89 +129,91 @@ func wizardRelay() {
 		Members:   members,
 		Listen:    ":" + listenPort,
 		PSK:       config.GenPSK(),
-		SNI:       ask("SNI (دامنهٔ تقلبی برای TLS)", "www.cloudflare.com"),
+		SNI:       ask("SNI (decoy TLS domain)", "www.cloudflare.com"),
 		Forwards:  askForwards(),
 		Creator:   creator,
 		GitHub:    github,
 	}
 	var advAddr string
 	if mode == config.ModeReverse {
-		ip := ask("آی‌پی عمومی این سرور ایران", "")
+		ip := ask("Public IP of this Iran server", "")
 		advAddr = ip + ":" + listenPort
 	} else {
-		fip := ask("آی‌پی سرور خارج (ایران به آن وصل می‌شود)", "")
-		fport := ask("پورت سرور خارج", listenPort)
+		fip := ask("Foreign server IP (Iran dials it)", "")
+		fport := ask("Foreign server port", listenPort)
 		cfg.Peer = fip + ":" + fport
-		cfg.TunSubnet = ask("شبکهٔ خصوصی تونل (TUN /30)", "10.72.0.1/30")
+		cfg.TunSubnet = ask("Private tunnel subnet (TUN /30)", "10.72.0.1/30")
 		advAddr = "0.0.0.0:" + fport
 	}
 	if tr == "crdv" {
-		cfg.Broker = ask("آدرس بروکر (broker host:port)", cfg.Broker)
+		cfg.Broker = ask("Broker address (host:port)", cfg.Broker)
+	}
+	if tr == "cspoof" {
+		cfg.SpoofSrc = ask("Forged source IP to send from", "")
 	}
 	if err := cfg.Validate(); err != nil {
-		fmt.Println(ui.Red+"خطا:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Error:"+ui.Reset, err)
 		return
 	}
 	saveAndMaybeService(cfg)
 	setup := setupcode.FromRelay(cfg, advAddr)
-	fmt.Printf("\n%s✓ سرور ایران آماده شد.%s کد ستاپ را روی سرور خارج اجرا کن:\n", ui.Green, ui.Reset)
+	fmt.Printf("\n%s✓ Iran server ready.%s Run the setup code on the foreign server:\n", ui.Green, ui.Reset)
 	// Prefer a short code when a broker is available.
-	if cfg.Broker != "" && ask("کد کوتاه بسازم؟ (نیاز به بروکر) (y/n)", "y") == "y" {
+	if cfg.Broker != "" && ask("Mint a short code? (needs the broker) (y/n)", "y") == "y" {
 		code, err := setupcode.MintShort(cfg.Broker, setup)
 		if err != nil {
-			fmt.Println(ui.Yellow+"ساخت کد کوتاه ناموفق:"+ui.Reset, err)
+			fmt.Println(ui.Yellow+"Short code failed:"+ui.Reset, err)
 		} else {
-			fmt.Printf("  %s%s%s   (۳۰ دقیقه معتبر)\n", ui.Green, code, ui.Reset)
-			fmt.Printf("  روی خارج: %sctunnel join %s -broker %s%s\n", ui.Cyan, code, cfg.Broker, ui.Reset)
+			fmt.Printf("  %s%s%s   (valid 30 minutes)\n", ui.Green, code, ui.Reset)
+			fmt.Printf("  On the foreign server: %sctunnel join %s -broker %s%s\n", ui.Cyan, code, cfg.Broker, ui.Reset)
 			return
 		}
 	}
 	code := setupcode.Encode(setup)
 	fmt.Printf("  %sctunnel join %s%s\n", ui.Cyan, code, ui.Reset)
-	fmt.Printf("\nیا نصب دستی: نقش exit، همان PSK و ترنسپورت %s.\n", tr)
 }
 
 func wizardExit() {
-	fmt.Printf("\n%s── نصب سرور خارج ──%s\n", ui.Bold, ui.Reset)
-	code := ask("کد ستاپ را بچسبان", "")
+	fmt.Printf("\n%s-- Install Foreign server --%s\n", ui.Bold, ui.Reset)
+	code := ask("Paste the setup code", "")
 	if code == "" {
-		fmt.Println(ui.Yellow + "کدی وارد نشد." + ui.Reset)
+		fmt.Println(ui.Yellow + "No code entered." + ui.Reset)
 		return
 	}
 	var s setupcode.Setup
 	var err error
 	if setupcode.IsShort(code) {
-		b := ask("آدرس بروکر (broker host:port)", "")
+		b := ask("Broker address (host:port)", "")
 		s, err = setupcode.ResolveShort(b, code)
 	} else {
 		s, err = setupcode.Decode(code)
 	}
 	if err != nil {
-		fmt.Println(ui.Red+"کد نامعتبر:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Invalid code:"+ui.Reset, err)
 		return
 	}
 	cfg := s.ExitConfig()
 	cfg.Creator, cfg.GitHub = creator, github
 	if err := cfg.Validate(); err != nil {
-		fmt.Println(ui.Red+"خطا:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Error:"+ui.Reset, err)
 		return
 	}
 	saveAndMaybeService(cfg)
-	fmt.Printf("%s✓ سرور خارج به تونل وصل شد%s (mode=%s transport=%s)\n", ui.Green, ui.Reset, cfg.Mode, cfg.Transport)
+	fmt.Printf("%s✓ Foreign server joined the tunnel%s (mode=%s transport=%s)\n", ui.Green, ui.Reset, cfg.Mode, cfg.Transport)
 }
 
 func manageMenu() {
 	for {
 		fmt.Printf(`
-  %sمدیریت%s
-  %s1%s) وضعیت و پینگ زنده
-  %s2%s) Link Test (تست همهٔ ترنسپورت‌ها)
-  %s3%s) تغییر ترنسپورت
-  %s4%s) اعلان تلگرام (وضعیت/پینگ)
-  %s5%s) ری‌استارت سرویس
-  %s6%s) بازگشت
+  %sManage%s
+  %s1%s) Status and live ping
+  %s2%s) Link Test (probe every transport)
+  %s3%s) Change transport
+  %s4%s) Telegram notifications (status/ping)
+  %s5%s) Restart service
+  %s6%s) Back
 `, ui.Bold, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
-		switch ask("انتخاب", "") {
+		switch ask("Choice", "") {
 		case "1":
 			cmdStatus(nil)
 		case "2":
@@ -232,11 +234,11 @@ func manageMenu() {
 func manageLinkTest() {
 	cfg, err := config.Load(config.DefaultPath())
 	if err != nil {
-		fmt.Println(ui.Red+"کانفیگ خوانده نشد:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Could not read config:"+ui.Reset, err)
 		return
 	}
 	if cfg.Role == config.RoleRelay {
-		fmt.Println("روی ایران: سرور تست را اجرا می‌کنم، سپس روی خارج «ctunnel linktest -host <ip-ایران>» را بزن.")
+		fmt.Println("On Iran: starting the probe server. On the foreign server run: ctunnel linktest -host <iran-ip>")
 		cmdLinktestServer(nil)
 		return
 	}
@@ -248,30 +250,30 @@ func configureTelegram() {
 	path := config.DefaultPath()
 	cfg, err := config.Load(path)
 	if err != nil {
-		fmt.Println(ui.Red+"کانفیگ خوانده نشد:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Could not read config:"+ui.Reset, err)
 		return
 	}
 	if cfg.Telegram == nil {
 		cfg.Telegram = &config.Telegram{}
 	}
-	fmt.Printf("\n%s── اعلان تلگرام ──%s\n", ui.Bold, ui.Reset)
-	fmt.Println("یک ربات از @BotFather بساز، توکن را بگیر و آیدی چت را وارد کن.")
-	if ask("فعال باشد؟ (y/n)", map[bool]string{true: "y", false: "n"}[cfg.Telegram.Enabled]) != "y" {
+	fmt.Printf("\n%s-- Telegram notifications --%s\n", ui.Bold, ui.Reset)
+	fmt.Println("Create a bot with @BotFather, get the token, and enter your chat id.")
+	if ask("Enable? (y/n)", map[bool]string{true: "y", false: "n"}[cfg.Telegram.Enabled]) != "y" {
 		cfg.Telegram.Enabled = false
 		_ = cfg.Save(path)
-		fmt.Println(ui.Yellow + "اعلان تلگرام غیرفعال شد." + ui.Reset)
+		fmt.Println(ui.Yellow + "Telegram notifications disabled." + ui.Reset)
 		return
 	}
 	cfg.Telegram.Enabled = true
-	cfg.Telegram.Token = ask("توکن ربات", cfg.Telegram.Token)
-	cfg.Telegram.ChatID = ask("آیدی چت (chat id)", cfg.Telegram.ChatID)
-	iv, _ := strconv.Atoi(ask("فاصلهٔ ارسال وضعیت (ثانیه)", nonZero(cfg.Telegram.Interval, 300)))
+	cfg.Telegram.Token = ask("Bot token", cfg.Telegram.Token)
+	cfg.Telegram.ChatID = ask("Chat id", cfg.Telegram.ChatID)
+	iv, _ := strconv.Atoi(ask("Status interval (seconds)", nonZero(cfg.Telegram.Interval, 300)))
 	cfg.Telegram.Interval = iv
 	if err := cfg.Save(path); err != nil {
-		fmt.Println(ui.Red+"ذخیره ناموفق:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Save failed:"+ui.Reset, err)
 		return
 	}
-	fmt.Printf("%s✓ اعلان تلگرام فعال شد%s — برای اعمال: ری‌استارت سرویس.\n", ui.Green, ui.Reset)
+	fmt.Printf("%s✓ Telegram notifications enabled%s — restart the service to apply.\n", ui.Green, ui.Reset)
 }
 
 func nonZero(v, def int) string {
@@ -285,14 +287,14 @@ func nonZero(v, def int) string {
 func saveAndMaybeService(cfg *config.Config) {
 	path := config.DefaultPath()
 	if err := cfg.Save(path); err != nil {
-		fmt.Println(ui.Red+"ذخیرهٔ کانفیگ ناموفق:"+ui.Reset, err)
+		fmt.Println(ui.Red+"Could not save config:"+ui.Reset, err)
 		return
 	}
-	fmt.Printf("%s✓ کانفیگ ذخیره شد:%s %s\n", ui.Green, ui.Reset, path)
-	if ask("سرویس systemd نصب و اجرا شود؟ (y/n)", "y") == "y" {
+	fmt.Printf("%s✓ Config saved:%s %s\n", ui.Green, ui.Reset, path)
+	if ask("Install and start the systemd service? (y/n)", "y") == "y" {
 		if err := installService(path); err != nil {
-			fmt.Println(ui.Yellow+"نصب سرویس ناموفق:"+ui.Reset, err)
-			fmt.Printf("می‌توانی دستی اجرا کنی: %sctunnel run%s\n", ui.Cyan, ui.Reset)
+			fmt.Println(ui.Yellow+"Service install failed:"+ui.Reset, err)
+			fmt.Printf("You can run it manually: %sctunnel run%s\n", ui.Cyan, ui.Reset)
 		}
 	}
 }
@@ -307,7 +309,7 @@ ExecStart=%s run -config %s
 Restart=always
 RestartSec=2
 LimitNOFILE=1048576
-AmbientCapabilities=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 NoNewPrivileges=false
 
 [Install]
@@ -332,13 +334,13 @@ func installService(cfgPath string) error {
 			return fmt.Errorf("systemctl %s: %v: %s", strings.Join(a, " "), err, out)
 		}
 	}
-	fmt.Printf("%s✓ سرویس ctunnel فعال شد%s (systemctl status ctunnel)\n", ui.Green, ui.Reset)
+	fmt.Printf("%s✓ ctunnel service is running%s (systemctl status ctunnel)\n", ui.Green, ui.Reset)
 	return nil
 }
 
 func serviceCmd(action string) {
 	if _, err := exec.LookPath("systemctl"); err != nil {
-		fmt.Println(ui.Yellow + "systemctl در دسترس نیست." + ui.Reset)
+		fmt.Println(ui.Yellow + "systemctl is not available." + ui.Reset)
 		return
 	}
 	out, err := exec.Command("systemctl", action, "ctunnel").CombinedOutput()
@@ -346,5 +348,5 @@ func serviceCmd(action string) {
 		fmt.Printf("%s%s%s: %v\n%s\n", ui.Red, action, ui.Reset, err, out)
 		return
 	}
-	fmt.Printf("%s✓ %s انجام شد%s\n", ui.Green, action, ui.Reset)
+	fmt.Printf("%s✓ %s done%s\n", ui.Green, action, ui.Reset)
 }

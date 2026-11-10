@@ -27,7 +27,7 @@ type cdns struct{}
 func (cdns) Name() string     { return "cdns" }
 func (cdns) Category() string { return CatSpecial }
 func (cdns) Description() string {
-	return "تونل داخل DNS (برای قطعی کامل)؛ KCP روی کوئری/پاسخ، آهسته اما مقاوم"
+	return "tunnel inside DNS (for full blackout); KCP over query/answer, slow but resilient"
 }
 
 // dnsCarrierMTU keeps each KCP packet small enough to fit a single DNS query name (≤255 bytes after

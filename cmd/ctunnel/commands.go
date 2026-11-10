@@ -20,7 +20,7 @@ func cmdBroker(args []string) {
 	fs := flag.NewFlagSet("broker", flag.ExitOnError)
 	listen := fs.String("listen", ":9000", "address to listen on")
 	_ = fs.Parse(args)
-	fmt.Printf("%sC Tunnel broker روی %s%s — هر دو سرور به این آدرس وصل می‌شوند.\n", ui.Green, *listen, ui.Reset)
+	fmt.Printf("%sC Tunnel broker on %s%s — both servers connect here.\n", ui.Green, *listen, ui.Reset)
 	if err := broker.Serve(*listen); err != nil {
 		fatal(err)
 	}
@@ -63,14 +63,14 @@ func cmdSetupCode(args []string) {
 		if err != nil {
 			fatal(err)
 		}
-		fmt.Printf("\n%sکد کوتاه ستاپ (۳۰ دقیقه معتبر):%s\n", ui.Bold, ui.Reset)
+		fmt.Printf("\n%sShort setup code (valid 30 minutes):%s\n", ui.Bold, ui.Reset)
 		fmt.Printf("  %s%s%s\n", ui.Green, code, ui.Reset)
-		fmt.Printf("  روی سرور خارج: %sctunnel join %s -broker %s%s\n\n", ui.Cyan, code, b, ui.Reset)
+		fmt.Printf("  On the foreign server: %sctunnel join %s -broker %s%s\n\n", ui.Cyan, code, b, ui.Reset)
 		return
 	}
 	code := setupcode.Encode(setup)
 	fmt.Println()
-	fmt.Printf("%sکد ستاپ سرور خارج (روی سرور خارج اجرا کن):%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("%sSetup code (run it on the foreign server):%s\n", ui.Bold, ui.Reset)
 	fmt.Printf("  %sctunnel join %s%s\n\n", ui.Cyan, code, ui.Reset)
 }
 
@@ -118,8 +118,8 @@ func cmdJoin(args []string) {
 	if err := cfg.Save(*path); err != nil {
 		fatal(err)
 	}
-	fmt.Printf("%s✓ سرور خارج پیکربندی شد%s  (mode=%s transport=%s)\n", ui.Green, ui.Reset, cfg.Mode, cfg.Transport)
-	fmt.Printf("  اجرا: %sctunnel run%s   یا سرویس: %sctunnel install-service%s\n", ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
+	fmt.Printf("%s\u2713 Foreign server configured%s  (mode=%s transport=%s)\n", ui.Green, ui.Reset, cfg.Mode, cfg.Transport)
+	fmt.Printf("  Run: %sctunnel run%s   or as a service: %sctunnel install-service%s\n", ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
 }
 
 // cmdLinktestServer runs the probe server on the relay (Iran) so the foreign server can test links.
@@ -139,9 +139,9 @@ func cmdLinktestServer(args []string) {
 		fatal(err)
 	}
 	defer stop()
-	fmt.Printf("%sLink Test server آماده است%s روی پورت‌های %d..%d\n", ui.Green, ui.Reset, *base, *base+len(names)-1)
-	fmt.Println("روی سرور خارج اجرا کن: ctunnel linktest -host <ip-ایران>")
-	fmt.Println("برای توقف Ctrl+C بزن.")
+	fmt.Printf("%sLink Test server ready%s on ports %d..%d\n", ui.Green, ui.Reset, *base, *base+len(names)-1)
+	fmt.Println("On the foreign server run: ctunnel linktest -host <iran-ip>")
+	fmt.Println("Press Ctrl+C to stop.")
 	select {} // block until killed
 }
 
@@ -165,7 +165,7 @@ func cmdLinktest(args []string) {
 		fatal(fmt.Errorf("no host to probe; pass -host <ip>"))
 	}
 	names := transport.Names()
-	fmt.Printf("در حال تست %d ترنسپورت به %s ...\n", len(names), h)
+	fmt.Printf("Testing %d transports against %s ...\n", len(names), h)
 	results := linktest.ProbeAll(cfg, names, h, *base, 6*time.Second)
 	printResults(results)
 }
@@ -193,9 +193,9 @@ func printResults(results []linktest.Result) {
 		}
 	}
 	if best != "" {
-		fmt.Printf("\n  %sبهترین ترنسپورت: %s%s — برای استفاده: ctunnel switch %s\n\n", ui.Bold, best, ui.Reset, best)
+		fmt.Printf("\n  %sBest transport: %s%s — to use it: ctunnel switch %s\n\n", ui.Bold, best, ui.Reset, best)
 	} else {
-		fmt.Printf("\n  %sهیچ ترنسپورتی وصل نشد — آیا linktest-server روی ایران اجراست؟%s\n\n", ui.Yellow, ui.Reset)
+		fmt.Printf("\n  %sNo transport connected — is linktest-server running on Iran?%s\n\n", ui.Yellow, ui.Reset)
 	}
 }
 
@@ -221,8 +221,8 @@ func cmdSwitch(args []string) {
 	if err := cfg.Save(*path); err != nil {
 		fatal(err)
 	}
-	fmt.Printf("%s✓ ترنسپورت از %s به %s تغییر کرد%s\n", ui.Green, old, name, ui.Reset)
-	fmt.Printf("  روی هر دو سرور %sctunnel restart%s (یا systemctl restart ctunnel) را بزن.\n", ui.Cyan, ui.Reset)
+	fmt.Printf("%s\u2713 Transport changed from %s to %s%s\n", ui.Green, old, name, ui.Reset)
+	fmt.Printf("  Run %sctunnel restart%s (or systemctl restart ctunnel) on both servers.\n", ui.Cyan, ui.Reset)
 }
 
 // cmdStatus prints the config summary and, where possible, a live ping.
@@ -234,30 +234,30 @@ func cmdStatus(args []string) {
 	if err != nil {
 		fatal(err)
 	}
-	roleFa := map[string]string{config.RoleRelay: "ایران (relay)", config.RoleExit: "خارج (exit)"}
+	roleFa := map[string]string{config.RoleRelay: "Iran (relay)", config.RoleExit: "Foreign (exit)"}
 	fmt.Println()
-	fmt.Printf("  %sC Tunnel — وضعیت%s\n", ui.Bold, ui.Reset)
-	fmt.Printf("  نقش:        %s\n", roleFa[cfg.Role])
-	fmt.Printf("  حالت:       %s\n", cfg.Mode)
-	fmt.Printf("  ترنسپورت:   %s\n", cfg.Transport)
+	fmt.Printf("  %sC Tunnel — status%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("  role:       %s\n", roleFa[cfg.Role])
+	fmt.Printf("  mode:       %s\n", cfg.Mode)
+	fmt.Printf("  transport:  %s\n", cfg.Transport)
 	if cfg.Listen != "" {
 		fmt.Printf("  listen:     %s\n", cfg.Listen)
 	}
 	if cfg.Peer != "" {
 		fmt.Printf("  peer:       %s\n", cfg.Peer)
 	}
-	fmt.Printf("  پورت‌ها:     %d فوروارد\n", len(cfg.Forwards))
+	fmt.Printf("  forwards:   %d\n", len(cfg.Forwards))
 	for _, f := range cfg.Forwards {
 		fmt.Printf("    • %s  :%d → %s (%s)\n", f.Name, f.Listen, f.Target, protoOr(f.Proto))
 	}
 	// Live ping only makes sense from the side that dials out.
 	if cfg.Role == config.RoleExit && cfg.Peer != "" {
-		fmt.Printf("  در حال پینگ %s ...\n", cfg.Peer)
+		fmt.Printf("  pinging %s ...\n", cfg.Peer)
 		r := linktest.ProbeAddr(cfg, cfg.Transport, cfg.Peer, 6*time.Second)
 		if r.OK {
-			fmt.Printf("  لینک:       %sمتصل%s  (ping %dms)\n", ui.Green, ui.Reset, r.Ping.Milliseconds())
+			fmt.Printf("  link:       %sconnected%s  (ping %dms)\n", ui.Green, ui.Reset, r.Ping.Milliseconds())
 		} else {
-			fmt.Printf("  لینک:       %sقطع%s  (%s)\n", ui.Red, ui.Reset, short(r.Err))
+			fmt.Printf("  link:       %sdown%s  (%s)\n", ui.Red, ui.Reset, short(r.Err))
 		}
 	}
 	fmt.Println()

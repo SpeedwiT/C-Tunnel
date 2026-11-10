@@ -19,9 +19,9 @@ const (
 
 // CategoryTitle is the human label for a category.
 var CategoryTitle = map[string]string{
-	CatTCP:     "TCP (مقاوم روی دیتاسنترهای ضعیفِ UDP)",
-	CatUDP:     "UDP (پرسرعت)",
-	CatSpecial: "خاص / بلک‌اوت",
+	CatTCP:     "TCP (resilient where UDP is throttled)",
+	CatUDP:     "UDP (fastest)",
+	CatSpecial: "Special (blocked IP / blackout)",
 }
 
 var CategoryOrder = []string{CatTCP, CatUDP, CatSpecial}

@@ -20,7 +20,7 @@ type chttp struct{}
 func (chttp) Name() string     { return "chttp" }
 func (chttp) Category() string { return CatTCP }
 func (chttp) Description() string {
-	return "شبیه HTTP ساده (بدون TLS)؛ رمزنگاری در لایهٔ هسته"
+	return "plain HTTP/1.1 mimic (no TLS); the core still encrypts"
 }
 
 const httpPath = "/stream"

@@ -25,7 +25,7 @@ type cws struct{}
 func (cws) Name() string     { return "cws" }
 func (cws) Category() string { return CatTCP }
 func (cws) Description() string {
-	return "WebSocket روی TLS (شبیه اتصال وب‌سوکت عادی)"
+	return "WebSocket over TLS (looks like a normal WebSocket)"
 }
 
 const wsMagic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

@@ -9,9 +9,9 @@ import (
 
 func init() {
 	// C-KCP: reliable UDP tuned for normal-to-lossy links, moderate FEC.
-	register(ckcp{name: "ckcp", desc: "UDP قابل‌اعتماد (KCP) با FEC؛ صاف‌کردن قطع‌وصلی", data: 10, parity: 3, aggressive: false})
+	register(ckcp{name: "ckcp", desc: "reliable UDP (KCP) with FEC; smooths packet loss", data: 10, parity: 3, aggressive: false})
 	// C-Storm: aggressive FEC + turbo for severe loss / heavy disruption.
-	register(ckcp{name: "cstorm", desc: "UDP پرخطا (KCP + FEC قوی)؛ مخصوص اختلال و packet-loss شدید", data: 10, parity: 5, aggressive: true})
+	register(ckcp{name: "cstorm", desc: "reliable UDP (KCP) with aggressive FEC for severe loss/disruption", data: 10, parity: 5, aggressive: true})
 }
 
 // ckcp carries the tunnel over KCP, a reliable-UDP protocol with forward error correction, so lost

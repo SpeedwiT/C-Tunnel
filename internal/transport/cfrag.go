@@ -18,7 +18,7 @@ type cfrag struct{}
 func (cfrag) Name() string     { return "cfrag" }
 func (cfrag) Category() string { return CatTCP }
 func (cfrag) Description() string {
-	return "فرگمنت SNI/ClientHello برای عبور از DPIِ SNI"
+	return "ClientHello/SNI fragmentation to defeat SNI-based DPI"
 }
 
 func (cfrag) Listen(cfg *config.Config) (net.Listener, error) {

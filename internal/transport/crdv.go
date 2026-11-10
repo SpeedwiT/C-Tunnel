@@ -22,7 +22,7 @@ type crdv struct{}
 func (crdv) Name() string     { return "crdv" }
 func (crdv) Category() string { return CatSpecial }
 func (crdv) Description() string {
-	return "رندزوو: هر دو سرور به بروکر زنگ می‌زنند (برای وقتی یک طرف اکسس/فیلتر است)"
+	return "rendezvous: both servers dial a broker (for when one IP is blocked)"
 }
 
 // RendezvousID turns a PSK into a stable, shareable rendezvous id.

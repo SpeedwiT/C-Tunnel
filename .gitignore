@@ -1,5 +1,8 @@
 /ctunnel
-/dist/
+/dist/*
+!/dist/ctunnel-linux-amd64
+!/dist/ctunnel-linux-arm64
+!/dist/SHA256SUMS
 *.test
 *.out
 .env

@@ -21,7 +21,7 @@ type cspoof struct{}
 func (cspoof) Name() string     { return "cspoof" }
 func (cspoof) Category() string { return CatSpecial }
 func (cspoof) Description() string {
-	return "آدرس مبدأ جعلی (هر دو سرور باید اسپوف‌خور باشند)؛ نیازمند root"
+	return "forged source address (both servers must be spoof-capable); needs root"
 }
 
 func spoofBlock() kcp.BlockCrypt { b, _ := kcp.NewNoneBlockCrypt(nil); return b }

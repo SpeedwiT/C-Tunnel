@@ -24,7 +24,7 @@ type ctls struct{}
 func (ctls) Name() string     { return "ctls" }
 func (ctls) Category() string { return CatTCP }
 func (ctls) Description() string {
-	return "تونل داخل TLS 1.3 عادی؛ برای DPI شبیه HTTPS"
+	return "tunnel inside ordinary TLS 1.3; looks like HTTPS to DPI"
 }
 
 func (ctls) Listen(cfg *config.Config) (net.Listener, error) {
