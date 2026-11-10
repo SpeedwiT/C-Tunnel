@@ -129,6 +129,7 @@ func wizardRelay() {
 		fip := ask("آی‌پی سرور خارج (ایران به آن وصل می‌شود)", "")
 		fport := ask("پورت سرور خارج", listenPort)
 		cfg.Peer = fip + ":" + fport
+		cfg.TunSubnet = ask("شبکهٔ خصوصی تونل (TUN /30)", "10.72.0.1/30")
 		advAddr = "0.0.0.0:" + fport
 	}
 	if tr == "crdv" {

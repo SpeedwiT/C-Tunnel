@@ -6,6 +6,7 @@ require (
 	github.com/hashicorp/yamux v0.1.2
 	github.com/miekg/dns v1.1.62
 	github.com/quic-go/quic-go v0.65.0
+	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/xtaci/kcp-go/v5 v5.7.5
 	golang.org/x/crypto v0.58.0
 )

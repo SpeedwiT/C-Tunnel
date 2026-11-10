@@ -88,10 +88,12 @@ func cmdRun(args []string) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	switch cfg.Role {
-	case config.RoleRelay:
+	switch {
+	case cfg.Mode == config.ModeDirect:
+		err = tunnel.RunDirect(ctx, cfg) // full IP tunnel; role decides who dials
+	case cfg.Role == config.RoleRelay:
 		err = tunnel.RunRelay(ctx, cfg)
-	case config.RoleExit:
+	case cfg.Role == config.RoleExit:
 		err = tunnel.RunExit(ctx, cfg)
 	default:
 		fatal(fmt.Errorf("unknown role %q", cfg.Role))

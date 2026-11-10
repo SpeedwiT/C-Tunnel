@@ -67,11 +67,14 @@ func TestDirectExitConfigListens(t *testing.T) {
 		t.Fatal(err)
 	}
 	ec := s.ExitConfig()
-	if ec.Role != config.RoleRelay {
-		t.Fatalf("direct foreign side must listen, got role %q", ec.Role)
+	if ec.Role != config.RoleExit {
+		t.Fatalf("direct foreign side stays exit role, got %q", ec.Role)
 	}
-	if ec.Listen != ":7000" {
+	if ec.Listen != ":7000" { // but it listens (RunDirect uses role only to pick who dials)
 		t.Fatalf("listen = %q", ec.Listen)
+	}
+	if ec.Mode != config.ModeDirect {
+		t.Fatalf("mode = %q", ec.Mode)
 	}
 	if err := ec.Validate(); err != nil {
 		t.Fatalf("direct config invalid: %v", err)

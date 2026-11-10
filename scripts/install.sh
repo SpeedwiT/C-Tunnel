@@ -20,6 +20,7 @@ die()  { echo "${red}✗${rst} $*" >&2; exit 1; }
 ensure_pkg() { command -v "$1" >/dev/null 2>&1 || { say "نصب $1"; apt-get update -y && apt-get install -y "$1"; }; }
 ensure_pkg git
 ensure_pkg curl
+command -v ip >/dev/null 2>&1 || { say "نصب iproute2 (برای حالت مستقیم/TUN)"; apt-get install -y iproute2 || true; }
 
 if ! command -v go >/dev/null 2>&1; then
   arch=$(uname -m); case "$arch" in x86_64) ga=amd64;; aarch64|arm64) ga=arm64;; *) die "معماری پشتیبانی‌نشده: $arch";; esac

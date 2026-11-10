@@ -125,6 +125,20 @@ func (c *Config) Validate() error {
 		if c.Role != RoleRelay && c.Role != RoleExit {
 			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
 		}
+	} else if c.Mode == ModeDirect {
+		// Direct mode: Iran (relay) dials out and needs a peer; the foreign server (exit) listens.
+		switch c.Role {
+		case RoleRelay:
+			if c.Peer == "" {
+				return fmt.Errorf("direct-mode Iran server needs a peer (foreign) address")
+			}
+		case RoleExit:
+			if c.Listen == "" {
+				return fmt.Errorf("direct-mode foreign server needs a listen address")
+			}
+		default:
+			return fmt.Errorf("role must be %q or %q", RoleRelay, RoleExit)
+		}
 	} else {
 		switch c.Role {
 		case RoleRelay:

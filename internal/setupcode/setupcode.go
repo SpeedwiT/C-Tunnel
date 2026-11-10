@@ -125,8 +125,9 @@ func (s Setup) ExitConfig() *config.Config {
 		return c
 	}
 	if c.Mode == config.ModeDirect {
-		// Iran dials out; the foreign server is the one that listens.
-		c.Role = config.RoleRelay
+		// Direct mode: Iran dials out, the foreign server listens. The foreign node stays the exit
+		// role; RunDirect uses the role only to decide who dials.
+		c.Role = config.RoleExit
 		c.Listen = listenPart(s.Peer)
 	} else {
 		// Foreign dials the Iran relay.
