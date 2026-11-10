@@ -68,7 +68,7 @@ sudo bash install.sh ./ctunnel        # ctunnel را نصب و منو را با�
 | | ✅ `cws` | وب‌سوکت روی TLS |
 | | ✅ `chttp` | شبیه HTTP ساده (روی :80، در whitelistِ قطعی هم رد می‌شود) |
 | | ✅ `cfrag` | فرگمنت SNI/ClientHello برای عبور از DPIِ SNI |
-| | ⏳ `cspoof` | **آدرس مبدأ جعلی** — هر دو دیتاسنتر باید اسپوف‌خور باشند |
+| | ✅ `cspoof` | **آدرس مبدأ جعلی** — هر دو دیتاسنتر باید اسپوف‌خور باشند |
 | **UDP** | ✅ `cquic` | QUIC شبیه HTTP/3؛ سریع‌ترین، مهاجرت IP/پورت |
 | | ✅ `ckcp` | UDP قابل‌اعتماد (KCP) با FEC؛ صاف‌کردن قطع‌وصلی |
 | | ✅ `cstorm` | KCP با FEC قوی برای packet-loss شدید |

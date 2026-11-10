@@ -37,7 +37,7 @@ fi
 [ -n "$src" ] && [ -f "$src" ] || die "Binary not found. Download ctunnel-linux-$arch and pass its path:
   sudo bash manual-install.sh /path/to/ctunnel-linux-$arch"
 
-echo "${cyan}»${rst} installing $src -> $BIN"
+echo "${cyan}>>${rst} installing $src -> $BIN"
 install -m 0755 "$src" "$BIN"
 ok "installed: $BIN ($arch)"
 

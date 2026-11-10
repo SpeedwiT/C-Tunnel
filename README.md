@@ -5,21 +5,28 @@
 <h1 align="center">C Tunnel</h1>
 
 <p align="center">
-  <b>A fast, anti-DPI, anti-filter, multi-transport tunnel between an Iran relay and a foreign exit.</b><br>
-  Built for Iran's conditions — heavy throttling, packet loss, SNI/IP blocking, and full blackouts.
+  High-performance tunneling between Iran and abroad — built in Go.
 </p>
 
 <p align="center">
-  <code>10 transports</code> · <code>TCP / UDP / DNS</code> · <code>reverse + direct modes</code> ·
-  <code>rendezvous for blocked IPs</code> · <code>one-line install</code> · <code>single static binary</code>
+  <img src="https://img.shields.io/badge/release-v1.0.0-fe7d37?logo=github&logoColor=white" alt="release">
+  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/github/license/SpeedwiT/C-Tunnel?color=555" alt="license">
+  <img src="https://img.shields.io/github/stars/SpeedwiT/C-Tunnel?logo=github&color=fe7d37" alt="stars">
+  <img src="https://img.shields.io/github/downloads/SpeedwiT/C-Tunnel/total?logo=github&label=downloads&color=fe7d37" alt="downloads">
 </p>
 
-> **GitHub:** [@SpeedwiT](https://github.com/SpeedwiT) · Written in Go, no runtime dependencies.
+<p align="center">
+  <a href="#install-one-line--on-each-server-iran-first">Install</a> ·
+  <a href="docs/MANUAL_INSTALL.md">Documentation</a> ·
+  <a href="README.fa.md">فارسی</a> ·
+  <a href="https://t.me/Speedw_IT">Telegram</a> ·
+  <a href="https://github.com/SpeedwiT/C-Tunnel/discussions">Community</a>
+</p>
 
 <p align="center">
-  <a href="README.fa.md"><b>🇮🇷 راهنمای کامل فارسی »</b></a>
-  &nbsp;·&nbsp;
-  <a href="docs/MANUAL_INSTALL.md"><b>Manual / offline install »</b></a>
+  <b>Anti-DPI, anti-filter, multi-transport.</b> Built for Iran's conditions — heavy throttling,
+  packet loss, SNI/IP blocking, and full blackouts.
 </p>
 
 ---
@@ -86,7 +93,7 @@ it can never see or forge the traffic — so even the rendezvous broker only eve
 
 ### Transports (10, in selectable categories)
 
-Run `ctunnel transports` to list them grouped. ✅ live & end-to-end tested, ⏳ planned.
+Run `ctunnel transports` to list them grouped. All 10 are implemented and end-to-end tested (✅).
 
 | Category | Transport | What it looks like on the wire |
 |---|---|---|
@@ -94,7 +101,7 @@ Run `ctunnel transports` to list them grouped. ✅ live & end-to-end tested, ⏳
 | | ✅ `cws` | WebSocket upgrade over TLS |
 | | ✅ `chttp` | plain HTTP/1.1 mimic (survives the shutdown whitelist on :80) |
 | | ✅ `cfrag` | ClientHello/SNI fragmentation to defeat SNI-based DPI |
-| | ⏳ `cspoof` | **forged source addresses** — both datacenters must be *spoof-capable* |
+| | ✅ `cspoof` | **forged source addresses** — both datacenters must be *spoof-capable* |
 | **UDP** | ✅ `cquic` | HTTP/3-shaped QUIC; fastest, migrates across IP/port |
 | | ✅ `ckcp` | reliable UDP (KCP) with FEC; smooths loss |
 | | ✅ `cstorm` | KCP with aggressive FEC for severe loss |
