@@ -21,7 +21,11 @@ func init() { register(ctls{}) }
 // the peer) — the TLS layer is camouflage, so the exit skips verification.
 type ctls struct{}
 
-func (ctls) Name() string { return "ctls" }
+func (ctls) Name() string     { return "ctls" }
+func (ctls) Category() string { return CatTCP }
+func (ctls) Description() string {
+	return "تونل داخل TLS 1.3 عادی؛ برای DPI شبیه HTTPS"
+}
 
 func (ctls) Listen(cfg *config.Config) (net.Listener, error) {
 	cert, err := selfSigned(sniOrDefault(cfg.SNI))

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/SpeedwiT/c-tunnel/internal/config"
+	"github.com/SpeedwiT/c-tunnel/internal/transport"
 )
 
 func freePort(t *testing.T) int {
@@ -42,40 +43,44 @@ func echoServer(t *testing.T) string {
 	return l.Addr().String()
 }
 
-func TestTunnelForwardsThroughCTLS(t *testing.T) {
-	target := echoServer(t)
-	transportPort := freePort(t)
-	forwardPort := freePort(t)
-	psk := config.GenPSK()
+// every registered transport must carry the tunnel end-to-end.
+func TestAllTransportsForward(t *testing.T) {
+	for _, name := range transport.Names() {
+		name := name
+		t.Run(name, func(t *testing.T) {
+			target := echoServer(t)
+			transportPort := freePort(t)
+			forwardPort := freePort(t)
+			psk := config.GenPSK()
 
-	relay := &config.Config{
-		Role: config.RoleRelay, Transport: "ctls", PSK: psk,
-		Listen:   fmt.Sprintf("127.0.0.1:%d", transportPort),
-		Forwards: []config.Forward{{Name: "svc", Listen: forwardPort, Target: target}},
-	}
-	exit := &config.Config{
-		Role: config.RoleExit, Transport: "ctls", PSK: psk,
-		Peer: fmt.Sprintf("127.0.0.1:%d", transportPort),
-	}
+			relay := &config.Config{
+				Role: config.RoleRelay, Transport: name, PSK: psk,
+				Listen:   fmt.Sprintf("127.0.0.1:%d", transportPort),
+				Forwards: []config.Forward{{Name: "svc", Listen: forwardPort, Target: target}},
+			}
+			exit := &config.Config{
+				Role: config.RoleExit, Transport: name, PSK: psk,
+				Peer: fmt.Sprintf("127.0.0.1:%d", transportPort),
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go RunRelay(ctx, relay)
+			time.Sleep(200 * time.Millisecond)
+			go RunExit(ctx, exit)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go RunRelay(ctx, relay)
-	time.Sleep(150 * time.Millisecond)
-	go RunExit(ctx, exit)
-
-	// retry until the tunnel is live and the echo round-trips
-	deadline := time.Now().Add(5 * time.Second)
-	var lastErr error
-	for time.Now().Before(deadline) {
-		if err := roundTrip(forwardPort, []byte("hello c-tunnel")); err != nil {
-			lastErr = err
-			time.Sleep(150 * time.Millisecond)
-			continue
-		}
-		return // success
+			deadline := time.Now().Add(10 * time.Second)
+			var lastErr error
+			for time.Now().Before(deadline) {
+				if err := roundTrip(forwardPort, []byte("hello c-tunnel via "+name)); err != nil {
+					lastErr = err
+					time.Sleep(200 * time.Millisecond)
+					continue
+				}
+				return
+			}
+			t.Fatalf("[%s] echo through tunnel never succeeded: %v", name, lastErr)
+		})
 	}
-	t.Fatalf("echo through tunnel never succeeded: %v", lastErr)
 }
 
 func TestWrongPSKRejected(t *testing.T) {

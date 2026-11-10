@@ -10,9 +10,27 @@ import (
 	"github.com/SpeedwiT/c-tunnel/internal/config"
 )
 
+// Categories a transport can belong to (shown as sections in the menu).
+const (
+	CatTCP     = "tcp"     // TCP-based: best where UDP is throttled/blocked
+	CatUDP     = "udp"     // UDP-based: fastest, best on good links
+	CatSpecial = "special" // blackout / last-resort carriers
+)
+
+// CategoryTitle is the human label for a category.
+var CategoryTitle = map[string]string{
+	CatTCP:     "TCP (مقاوم روی دیتاسنترهای ضعیفِ UDP)",
+	CatUDP:     "UDP (پرسرعت)",
+	CatSpecial: "خاص / بلک‌اوت",
+}
+
+var CategoryOrder = []string{CatTCP, CatUDP, CatSpecial}
+
 // Transport is one way to carry the tunnel between the relay (Iran) and the exit (abroad).
 type Transport interface {
 	Name() string
+	Category() string
+	Description() string
 	// Listen opens the relay-side listener yielding raw carrier connections.
 	Listen(cfg *config.Config) (net.Listener, error)
 	// Dial opens the exit-side carrier connection to the relay.
@@ -39,5 +57,17 @@ func Names() []string {
 		out = append(out, n)
 	}
 	sort.Strings(out)
+	return out
+}
+
+// Grouped returns the registered transports by category, in display order.
+func Grouped() map[string][]Transport {
+	out := map[string][]Transport{}
+	for _, t := range registry {
+		out[t.Category()] = append(out[t.Category()], t)
+	}
+	for _, list := range out {
+		sort.Slice(list, func(i, j int) bool { return list[i].Name() < list[j].Name() })
+	}
 	return out
 }

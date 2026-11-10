@@ -27,22 +27,26 @@ automatic fail-over between transports.
 
 ## Transports (roadmap)
 
-Grouped by what they're good at. ✅ = implemented, ⏳ = planned.
+Ten transports in three selectable categories. ✅ = implemented & tested, ⏳ = planned.
+Pick per node; `ctunnel transports` lists them grouped.
 
-**Fast + anti-filter (normal conditions)**
-- ✅ **C-TLS** — the tunnel inside an ordinary TLS 1.3 session (looks like HTTPS). TCP.
-- ⏳ **C-QUIC** — HTTP/3-shaped QUIC; fastest, migrates across IP/port. UDP.
-- ⏳ **C-WS** — WebSocket over TLS. TCP.
-- ⏳ **C-H2Mux** — HTTP/2-shaped, API-like multiplexed traffic. TCP.
-- ⏳ **C-Spoof** — SNI / TLS-record fragmentation to defeat SNI-based DPI. TCP.
+**TCP — resilient where UDP is throttled/blocked on an Iran datacenter**
+- ✅ **C-TLS** — the tunnel inside an ordinary TLS 1.3 session (looks like HTTPS).
+- ✅ **C-WS** — WebSocket upgrade over TLS (looks like a normal WebSocket).
+- ✅ **C-HTTP** — plain HTTP/1.1 mimic (no TLS); core still encrypts.
+- ✅ **C-Spoof** — ClientHello/SNI fragmentation to defeat SNI-based DPI (no CDN).
+- ⏳ **C-H2Mux** — HTTP/2-shaped, API-like multiplexed traffic.
 
-**Bad networks / severe disruption**
-- ⏳ **C-Storm** — fully-encrypted UDP (no signature) + FEC + port-hopping. UDP.
-- ⏳ **C-KCP** — reliable UDP tuned for lossy, high-latency links. UDP.
+**UDP — fastest on good links**
+- ✅ **C-QUIC** — HTTP/3-shaped QUIC; fastest, migrates across IP/port.
+- ✅ **C-KCP** — reliable UDP with FEC, tuned for lossy links; smooths drops.
+- ✅ **C-Storm** — reliable UDP with aggressive FEC for severe loss/disruption.
 
-**Full blackout**
+**Special — blackout / last resort**
 - ⏳ **C-ICMP** — tunnels over ping when only ICMP passes.
 - ⏳ **C-DNS** — tunnels over DNS/DoH, the last resort.
+
+7 of 10 are implemented and pass the end-to-end test; the three remaining are next.
 
 (No CDN transport — not needed.) Plus: automatic fail-over between transports, a built-in transport **test/ping** screen, live
 network/server status, a stylish terminal install menu, one-line install with a *setup code* so the

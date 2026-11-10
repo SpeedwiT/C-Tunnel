@@ -34,9 +34,7 @@ func main() {
 	case "genpsk":
 		fmt.Println(config.GenPSK())
 	case "transports":
-		for _, n := range transport.Names() {
-			fmt.Println(n)
-		}
+		printTransports()
 	case "version", "-v", "--version":
 		fmt.Printf("C Tunnel %s (%s)\n", version, github)
 	case "menu", "-h", "--help":
@@ -71,6 +69,21 @@ func cmdRun(args []string) {
 	if err != nil {
 		fatal(err)
 	}
+}
+
+func printTransports() {
+	grouped := transport.Grouped()
+	for _, cat := range transport.CategoryOrder {
+		list := grouped[cat]
+		if len(list) == 0 {
+			continue
+		}
+		fmt.Printf("\n%s%s%s\n", ui.Bold, transport.CategoryTitle[cat], ui.Reset)
+		for _, t := range list {
+			fmt.Printf("  %s%-8s%s %s\n", ui.Cyan, t.Name(), ui.Reset, t.Description())
+		}
+	}
+	fmt.Println()
 }
 
 func usage() {
