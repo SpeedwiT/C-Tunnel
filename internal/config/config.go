@@ -51,8 +51,7 @@ type Config struct {
 	Peer      string    `json:"peer,omitempty"`   // exit: relay address to dial, e.g. 1.2.3.4:7000
 	PSK       string    `json:"psk"`              // shared secret (base64, 32 bytes)
 	Forwards  []Forward `json:"forwards"`
-	SNI       string    `json:"sni,omitempty"`      // transport hint: TLS server name / fronting host
-	CDNHost   string    `json:"cdn_host,omitempty"` // C-CDN: the CDN edge host to dial
+	SNI       string    `json:"sni,omitempty"` // transport hint: TLS server name to present/expect
 	Creator   string    `json:"creator,omitempty"`
 	GitHub    string    `json:"github,omitempty"`
 }

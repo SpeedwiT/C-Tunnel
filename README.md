@@ -32,10 +32,9 @@ Grouped by what they're good at. ✅ = implemented, ⏳ = planned.
 **Fast + anti-filter (normal conditions)**
 - ✅ **C-TLS** — the tunnel inside an ordinary TLS 1.3 session (looks like HTTPS). TCP.
 - ⏳ **C-QUIC** — HTTP/3-shaped QUIC; fastest, migrates across IP/port. UDP.
-- ⏳ **C-WS** — WebSocket over TLS (direct or behind a CDN). TCP.
+- ⏳ **C-WS** — WebSocket over TLS. TCP.
 - ⏳ **C-H2Mux** — HTTP/2-shaped, API-like multiplexed traffic. TCP.
-- ⏳ **C-CDN** — behind a CDN (ArvanCloud / Cloudflare), immune to IP blocking. TCP.
-- ⏳ **C-Spoof** — SNI / TLS-record fragmentation to defeat SNI-based DPI (separate from CDN). TCP.
+- ⏳ **C-Spoof** — SNI / TLS-record fragmentation to defeat SNI-based DPI. TCP.
 
 **Bad networks / severe disruption**
 - ⏳ **C-Storm** — fully-encrypted UDP (no signature) + FEC + port-hopping. UDP.
@@ -45,7 +44,7 @@ Grouped by what they're good at. ✅ = implemented, ⏳ = planned.
 - ⏳ **C-ICMP** — tunnels over ping when only ICMP passes.
 - ⏳ **C-DNS** — tunnels over DNS/DoH, the last resort.
 
-Plus: automatic fail-over between transports, a built-in transport **test/ping** screen, live
+(No CDN transport — not needed.) Plus: automatic fail-over between transports, a built-in transport **test/ping** screen, live
 network/server status, a stylish terminal install menu, one-line install with a *setup code* so the
 foreign server joins in one step, and systemd services.
 
