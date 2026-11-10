@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/SpeedwiT/c-tunnel/internal/config"
+	"github.com/SpeedwiT/c-tunnel/internal/linktest"
 	"github.com/SpeedwiT/c-tunnel/internal/setupcode"
 	"github.com/SpeedwiT/c-tunnel/internal/transport"
 	"github.com/SpeedwiT/c-tunnel/internal/ui"
@@ -24,7 +27,6 @@ func ask(prompt, def string) string {
 	}
 	line, err := stdin.ReadString('\n')
 	if err != nil && strings.TrimSpace(line) == "" {
-		// No interactive input (EOF — e.g. run through a pipe). Exit cleanly instead of looping.
 		fmt.Println("\nNo terminal input — run `ctunnel` directly in a shell to use the menu.")
 		os.Exit(0)
 	}
@@ -35,48 +37,89 @@ func ask(prompt, def string) string {
 	return line
 }
 
+// header clears the screen and prints the banner so each view is a clean, full frame.
+func header() {
+	ui.Clear()
+	fmt.Print(ui.Banner(version, telegram, github, creator))
+}
+
+// pause waits for Enter before returning to the menu.
+func pause() {
+	fmt.Printf("\n%sPress Enter to return to the menu…%s", ui.Dim, ui.Reset)
+	_, _ = stdin.ReadString('\n')
+}
+
+// item renders one aligned menu row: number, bold title, dim hint.
+func item(n, title, hint string) {
+	fmt.Printf("  %s%2s%s) %s%-18s%s %s%s%s\n",
+		ui.BCyan, n, ui.Reset, ui.Bold, title, ui.Reset, ui.Dim, hint, ui.Reset)
+}
+
 // runMenu is the interactive terminal entrypoint (ctunnel with no args).
 func runMenu() {
-	fmt.Print(ui.Banner(version, github, creator))
 	for {
-		fmt.Printf(`
-  %s1%s) Install Iran server (Relay)
-  %s2%s) Install Foreign server (Exit) — with a setup code
-  %s3%s) Manage: status, Link Test, change transport
-  %s4%s) List transports
-  %s5%s) Quit
-`, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
-		switch ask("Choice", "") {
+		header()
+		fmt.Println()
+		item("0", "Connection Test", "which transports work between the two servers")
+		item("1", "Setup Iran", "the server users connect to")
+		item("2", "Setup Foreign", "the server abroad, with the service")
+		item("3", "Manage", "status, health, Link Test, change transport")
+		item("4", "Backup & Restore", "all settings in one file")
+		item("5", "Optimize", "BBR, buffers, limits")
+		item("6", "Telegram Bot", "reports and alerts")
+		item("7", "Update", "fetch the latest build (with rollback)")
+		item("8", "Uninstall", "remove everything")
+		item("9", "Exit", "")
+		fmt.Println()
+		switch ask("Select an option", "") {
+		case "0":
+			connectionTest()
 		case "1":
-			wizardRelay()
+			screen(wizardRelay)
 		case "2":
-			wizardExit()
+			screen(wizardExit)
 		case "3":
 			manageMenu()
 		case "4":
-			printTransports()
-		case "5", "q", "exit":
+			backupMenu()
+		case "5":
+			screen(optimize)
+		case "6":
+			screen(configureTelegram)
+		case "7":
+			screen(updateBinary)
+		case "8":
+			screen(uninstall)
+		case "9", "q", "exit":
+			ui.Clear()
 			return
 		}
 	}
 }
 
+// screen runs fn on a fresh frame and pauses before returning to the menu.
+func screen(fn func()) {
+	header()
+	fmt.Println()
+	fn()
+	pause()
+}
+
 // chooseTransport walks the user through category -> transport.
 func chooseTransport() string {
 	grouped := transport.Grouped()
-	fmt.Printf("\n%sChoose a transport category:%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("%sChoose a transport category:%s\n", ui.Bold, ui.Reset)
 	for i, cat := range transport.CategoryOrder {
-		fmt.Printf("  %s%d%s) %s\n", ui.Cyan, i+1, ui.Reset, transport.CategoryTitle[cat])
+		fmt.Printf("  %s%d%s) %s\n", ui.BCyan, i+1, ui.Reset, transport.CategoryTitle[cat])
 	}
 	ci, _ := strconv.Atoi(ask("Category", "1"))
 	if ci < 1 || ci > len(transport.CategoryOrder) {
 		ci = 1
 	}
-	cat := transport.CategoryOrder[ci-1]
-	list := grouped[cat]
+	list := grouped[transport.CategoryOrder[ci-1]]
 	fmt.Println()
 	for i, t := range list {
-		fmt.Printf("  %s%d%s) %-8s %s\n", ui.Cyan, i+1, ui.Reset, t.Name(), t.Description())
+		fmt.Printf("  %s%d%s) %-8s %s%s%s\n", ui.BCyan, i+1, ui.Reset, t.Name(), ui.Dim, t.Description(), ui.Reset)
 	}
 	ti, _ := strconv.Atoi(ask("Transport", "1"))
 	if ti < 1 || ti > len(list) {
@@ -86,9 +129,9 @@ func chooseTransport() string {
 }
 
 func chooseMode() string {
-	fmt.Printf("\n%sTunnel mode:%s\n", ui.Bold, ui.Reset)
-	fmt.Printf("  %s1%s) Reverse — the foreign server dials in to Iran; Iran needs one open port\n", ui.Cyan, ui.Reset)
-	fmt.Printf("  %s2%s) Direct  — Iran dials out; no inbound port on Iran (full IP tunnel)\n", ui.Cyan, ui.Reset)
+	fmt.Printf("%sTunnel mode:%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("  %s1%s) Reverse — the foreign server dials in to Iran; Iran needs one open port\n", ui.BCyan, ui.Reset)
+	fmt.Printf("  %s2%s) Direct  — Iran dials out; no inbound port on Iran (full IP tunnel)\n", ui.BCyan, ui.Reset)
 	if ask("Mode", "1") == "2" {
 		return config.ModeDirect
 	}
@@ -111,7 +154,7 @@ func askForwards() []config.Forward {
 }
 
 func wizardRelay() {
-	fmt.Printf("\n%s-- Install Iran server --%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("%s== Setup Iran (Relay) ==%s\n\n", ui.BGreen, ui.Reset)
 	mode := chooseMode()
 	var tr string
 	var members []string
@@ -128,21 +171,14 @@ func wizardRelay() {
 	}
 	listenPort := ask("Tunnel port on Iran", "7000")
 	cfg := &config.Config{
-		Role:      config.RoleRelay,
-		Mode:      mode,
-		Transport: tr,
-		Members:   members,
-		Listen:    ":" + listenPort,
-		PSK:       config.GenPSK(),
-		SNI:       ask("SNI (decoy TLS domain)", "www.cloudflare.com"),
-		Forwards:  askForwards(),
-		Creator:   creator,
-		GitHub:    github,
+		Role: config.RoleRelay, Mode: mode, Transport: tr, Members: members,
+		Listen: ":" + listenPort, PSK: config.GenPSK(),
+		SNI:      ask("SNI (decoy TLS domain)", "www.cloudflare.com"),
+		Forwards: askForwards(), Creator: creator, GitHub: github,
 	}
 	var advAddr string
 	if mode == config.ModeReverse {
-		ip := ask("Public IP of this Iran server", "")
-		advAddr = ip + ":" + listenPort
+		advAddr = ask("Public IP of this Iran server", "") + ":" + listenPort
 	} else {
 		fip := ask("Foreign server IP (Iran dials it)", "")
 		fport := ask("Foreign server port", listenPort)
@@ -162,24 +198,21 @@ func wizardRelay() {
 	}
 	saveAndMaybeService(cfg)
 	setup := setupcode.FromRelay(cfg, advAddr)
-	fmt.Printf("\n%s✓ Iran server ready.%s Run the setup code on the foreign server:\n", ui.Green, ui.Reset)
-	// Prefer a short code when a broker is available.
+	fmt.Printf("\n%s✓ Iran server ready.%s Run the setup code on the foreign server:\n", ui.BGreen, ui.Reset)
 	if cfg.Broker != "" && ask("Mint a short code? (needs the broker) (y/n)", "y") == "y" {
-		code, err := setupcode.MintShort(cfg.Broker, setup)
-		if err != nil {
+		if code, err := setupcode.MintShort(cfg.Broker, setup); err != nil {
 			fmt.Println(ui.Yellow+"Short code failed:"+ui.Reset, err)
 		} else {
-			fmt.Printf("  %s%s%s   (valid 30 minutes)\n", ui.Green, code, ui.Reset)
-			fmt.Printf("  On the foreign server: %sctunnel join %s -broker %s%s\n", ui.Cyan, code, cfg.Broker, ui.Reset)
+			fmt.Printf("  %s%s%s   (valid 30 minutes)\n", ui.BGreen, code, ui.Reset)
+			fmt.Printf("  On the foreign server: %sctunnel join %s -broker %s%s\n", ui.BCyan, code, cfg.Broker, ui.Reset)
 			return
 		}
 	}
-	code := setupcode.Encode(setup)
-	fmt.Printf("  %sctunnel join %s%s\n", ui.Cyan, code, ui.Reset)
+	fmt.Printf("  %sctunnel join %s%s\n", ui.BCyan, setupcode.Encode(setup), ui.Reset)
 }
 
 func wizardExit() {
-	fmt.Printf("\n%s-- Install Foreign server --%s\n", ui.Bold, ui.Reset)
+	fmt.Printf("%s== Setup Foreign (Exit) ==%s\n\n", ui.BGreen, ui.Reset)
 	code := ask("Paste the setup code", "")
 	if code == "" {
 		fmt.Println(ui.Yellow + "No code entered." + ui.Reset)
@@ -188,8 +221,7 @@ func wizardExit() {
 	var s setupcode.Setup
 	var err error
 	if setupcode.IsShort(code) {
-		b := ask("Broker address (host:port)", "")
-		s, err = setupcode.ResolveShort(b, code)
+		s, err = setupcode.ResolveShort(ask("Broker address (host:port)", ""), code)
 	} else {
 		s, err = setupcode.Decode(code)
 	}
@@ -204,64 +236,235 @@ func wizardExit() {
 		return
 	}
 	saveAndMaybeService(cfg)
-	fmt.Printf("%s✓ Foreign server joined the tunnel%s (mode=%s transport=%s)\n", ui.Green, ui.Reset, cfg.Mode, cfg.Transport)
+	fmt.Printf("%s✓ Foreign server joined the tunnel%s (mode=%s transport=%s)\n", ui.BGreen, ui.Reset, cfg.Mode, cfg.Transport)
+}
+
+// connectionTest probes which transports connect between the two servers (menu-friendly, returns).
+func connectionTest() {
+	header()
+	fmt.Printf("\n%s== Connection Test ==%s\n\n", ui.BGreen, ui.Reset)
+	cfg, err := config.Load(config.DefaultPath())
+	if err != nil {
+		fmt.Println(ui.Yellow+"No config yet — set up a server first."+ui.Reset, "("+err.Error()+")")
+		pause()
+		return
+	}
+	names := transport.Names()
+	if cfg.Role == config.RoleRelay {
+		stop, err := linktest.Server(cfg, names, linkTestBasePort)
+		if err != nil {
+			fmt.Println(ui.Red+"Could not start probe server:"+ui.Reset, err)
+			pause()
+			return
+		}
+		defer stop()
+		fmt.Printf("%sProbe server running%s on ports %d..%d.\n", ui.BGreen, ui.Reset, linkTestBasePort, linkTestBasePort+len(names)-1)
+		fmt.Printf("On the foreign server run:  %sctunnel linktest -host <this-iran-ip>%s\n", ui.BCyan, ui.Reset)
+		pause()
+		return
+	}
+	host := hostOf(cfg.Peer)
+	fmt.Printf("Testing %d transports against %s …\n", len(names), host)
+	printResults(linktest.ProbeAll(cfg, names, host, linkTestBasePort, 6*time.Second))
+	pause()
 }
 
 func manageMenu() {
 	for {
-		fmt.Printf(`
-  %sManage%s
-  %s1%s) Status and live ping
-  %s2%s) Link Test (probe every transport)
-  %s3%s) Change transport
-  %s4%s) Telegram notifications (status/ping)
-  %s5%s) Restart service
-  %s6%s) Back
-`, ui.Bold, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
-		switch ask("Choice", "") {
+		header()
+		fmt.Printf("\n  %s== Manage ==%s\n\n", ui.BGreen, ui.Reset)
+		item("1", "Status & live ping", "")
+		item("2", "Link Test", "probe every transport")
+		item("3", "Change transport", "no reinstall")
+		item("4", "Restart service", "")
+		item("5", "Service logs", "last 30 lines")
+		item("0", "Back", "")
+		fmt.Println()
+		switch ask("Select an option", "") {
 		case "1":
+			header()
+			fmt.Println()
 			cmdStatus(nil)
+			pause()
 		case "2":
-			manageLinkTest()
+			connectionTest()
 		case "3":
-			name := chooseTransport()
-			cmdSwitch([]string{name})
+			header()
+			fmt.Println()
+			cmdSwitch([]string{chooseTransport()})
+			pause()
 		case "4":
-			configureTelegram()
+			screen(func() { serviceCmd("restart") })
 		case "5":
-			serviceCmd("restart")
-		case "6", "q":
+			screen(serviceLogs)
+		case "0", "q":
 			return
 		}
 	}
 }
 
-func manageLinkTest() {
-	cfg, err := config.Load(config.DefaultPath())
+func serviceLogs() {
+	fmt.Printf("%s== Service logs ==%s\n\n", ui.BGreen, ui.Reset)
+	if _, err := exec.LookPath("journalctl"); err != nil {
+		fmt.Println(ui.Yellow + "journalctl not available." + ui.Reset)
+		return
+	}
+	out, _ := exec.Command("journalctl", "-u", "ctunnel", "-n", "30", "--no-pager").CombinedOutput()
+	fmt.Print(string(out))
+}
+
+func backupMenu() {
+	for {
+		header()
+		fmt.Printf("\n  %s== Backup & Restore ==%s\n\n", ui.BGreen, ui.Reset)
+		item("1", "Backup", "save all settings to one file")
+		item("2", "Restore", "load settings from a file")
+		item("0", "Back", "")
+		fmt.Println()
+		switch ask("Select an option", "") {
+		case "1":
+			screen(backupConfig)
+		case "2":
+			screen(restoreConfig)
+		case "0", "q":
+			return
+		}
+	}
+}
+
+func backupConfig() {
+	fmt.Printf("%s== Backup ==%s\n\n", ui.BGreen, ui.Reset)
+	data, err := os.ReadFile(config.DefaultPath())
 	if err != nil {
-		fmt.Println(ui.Red+"Could not read config:"+ui.Reset, err)
+		fmt.Println(ui.Red+"No config to back up:"+ui.Reset, err)
 		return
 	}
-	if cfg.Role == config.RoleRelay {
-		fmt.Println("On Iran: starting the probe server. On the foreign server run: ctunnel linktest -host <iran-ip>")
-		cmdLinktestServer(nil)
+	dst := ask("Save backup to", "/root/ctunnel-backup.json")
+	if err := os.WriteFile(dst, data, 0o600); err != nil {
+		fmt.Println(ui.Red+"Backup failed:"+ui.Reset, err)
 		return
 	}
-	cmdLinktest(nil)
+	fmt.Printf("%s✓ Backup saved:%s %s\n", ui.BGreen, ui.Reset, dst)
+}
+
+func restoreConfig() {
+	fmt.Printf("%s== Restore ==%s\n\n", ui.BGreen, ui.Reset)
+	src := ask("Restore backup from", "/root/ctunnel-backup.json")
+	data, err := os.ReadFile(src)
+	if err != nil {
+		fmt.Println(ui.Red+"Cannot read backup:"+ui.Reset, err)
+		return
+	}
+	if err := os.WriteFile(config.DefaultPath(), data, 0o600); err != nil {
+		fmt.Println(ui.Red+"Restore failed:"+ui.Reset, err)
+		return
+	}
+	fmt.Printf("%s✓ Settings restored.%s Restart the service to apply.\n", ui.BGreen, ui.Reset)
+	if ask("Restart now? (y/n)", "y") == "y" {
+		serviceCmd("restart")
+	}
+}
+
+// optimize applies BBR + sane network buffers for a fast tunnel.
+func optimize() {
+	fmt.Printf("%s== Optimize (BBR + buffers) ==%s\n\n", ui.BGreen, ui.Reset)
+	if os.Geteuid() != 0 {
+		fmt.Println(ui.Yellow + "Run as root to apply system tuning." + ui.Reset)
+		return
+	}
+	const conf = `# C Tunnel network tuning
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+net.core.rmem_max=67108864
+net.core.wmem_max=67108864
+net.ipv4.tcp_rmem=4096 87380 67108864
+net.ipv4.tcp_wmem=4096 65536 67108864
+net.ipv4.tcp_mtu_probing=1
+net.ipv4.udp_rmem_min=8192
+net.ipv4.udp_wmem_min=8192
+net.ipv4.ip_forward=1
+`
+	const path = "/etc/sysctl.d/99-ctunnel.conf"
+	if err := os.WriteFile(path, []byte(conf), 0o644); err != nil {
+		fmt.Println(ui.Red+"Write failed:"+ui.Reset, err)
+		return
+	}
+	out, err := exec.Command("sysctl", "--system").CombinedOutput()
+	if err != nil {
+		fmt.Printf("%ssysctl:%s %v\n%s\n", ui.Yellow, ui.Reset, err, out)
+		return
+	}
+	cc, _ := exec.Command("sysctl", "-n", "net.ipv4.tcp_congestion_control").Output()
+	fmt.Printf("%s✓ Applied.%s Congestion control: %s%s%s\n",
+		ui.BGreen, ui.Reset, ui.Bold, strings.TrimSpace(string(cc)), ui.Reset)
+}
+
+// updateBinary downloads the latest prebuilt binary for this arch and swaps it in, with rollback.
+func updateBinary() {
+	fmt.Printf("%s== Update ==%s\n\n", ui.BGreen, ui.Reset)
+	if os.Geteuid() != 0 {
+		fmt.Println(ui.Yellow + "Run as root to update." + ui.Reset)
+		return
+	}
+	arch := runtime.GOARCH // amd64 / arm64
+	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/C-Tunnel/main/dist/ctunnel-linux-%s", github, arch)
+	self, err := os.Executable()
+	if err != nil {
+		self = "/usr/local/bin/ctunnel"
+	}
+	tmp := self + ".new"
+	fmt.Printf("Downloading %s …\n", url)
+	if out, err := exec.Command("curl", "-fsSL", url, "-o", tmp).CombinedOutput(); err != nil {
+		fmt.Printf("%sDownload failed:%s %v\n%s\n", ui.Red, ui.Reset, err, out)
+		return
+	}
+	_ = os.Chmod(tmp, 0o755)
+	_ = os.Rename(self, self+".bak") // keep a rollback copy
+	if err := os.Rename(tmp, self); err != nil {
+		_ = os.Rename(self+".bak", self)
+		fmt.Println(ui.Red+"Swap failed, rolled back:"+ui.Reset, err)
+		return
+	}
+	// Verify the new binary runs; roll back if not.
+	if err := exec.Command(self, "version").Run(); err != nil {
+		_ = os.Rename(self+".bak", self)
+		fmt.Println(ui.Red + "New binary failed, rolled back." + ui.Reset)
+		return
+	}
+	fmt.Printf("%s✓ Updated.%s Restarting service…\n", ui.BGreen, ui.Reset)
+	serviceCmd("restart")
+}
+
+func uninstall() {
+	fmt.Printf("%s== Uninstall ==%s\n\n", ui.Red, ui.Reset)
+	if ask("Remove the service and binary? (yes/no)", "no") != "yes" {
+		fmt.Println("Cancelled.")
+		return
+	}
+	if _, err := exec.LookPath("systemctl"); err == nil {
+		_ = exec.Command("systemctl", "disable", "--now", "ctunnel").Run()
+		_ = os.Remove("/etc/systemd/system/ctunnel.service")
+		_ = exec.Command("systemctl", "daemon-reload").Run()
+	}
+	_ = os.Remove("/usr/local/bin/ctunnel")
+	if ask("Also delete the config at "+config.DefaultPath()+"? (y/n)", "n") == "y" {
+		_ = os.Remove(config.DefaultPath())
+	}
+	fmt.Printf("%s✓ Uninstalled.%s\n", ui.BGreen, ui.Reset)
 }
 
 // configureTelegram enables/updates Telegram status notifications in the saved config.
 func configureTelegram() {
+	fmt.Printf("%s== Telegram Bot ==%s\n\n", ui.BGreen, ui.Reset)
 	path := config.DefaultPath()
 	cfg, err := config.Load(path)
 	if err != nil {
-		fmt.Println(ui.Red+"Could not read config:"+ui.Reset, err)
+		fmt.Println(ui.Yellow+"Set up a server first."+ui.Reset, "("+err.Error()+")")
 		return
 	}
 	if cfg.Telegram == nil {
 		cfg.Telegram = &config.Telegram{}
 	}
-	fmt.Printf("\n%s-- Telegram notifications --%s\n", ui.Bold, ui.Reset)
 	fmt.Println("Create a bot with @BotFather, get the token, and enter your chat id.")
 	if ask("Enable? (y/n)", map[bool]string{true: "y", false: "n"}[cfg.Telegram.Enabled]) != "y" {
 		cfg.Telegram.Enabled = false
@@ -278,7 +481,7 @@ func configureTelegram() {
 		fmt.Println(ui.Red+"Save failed:"+ui.Reset, err)
 		return
 	}
-	fmt.Printf("%s✓ Telegram notifications enabled%s — restart the service to apply.\n", ui.Green, ui.Reset)
+	fmt.Printf("%s✓ Telegram notifications enabled%s — restart the service to apply.\n", ui.BGreen, ui.Reset)
 }
 
 func nonZero(v, def int) string {
@@ -295,11 +498,11 @@ func saveAndMaybeService(cfg *config.Config) {
 		fmt.Println(ui.Red+"Could not save config:"+ui.Reset, err)
 		return
 	}
-	fmt.Printf("%s✓ Config saved:%s %s\n", ui.Green, ui.Reset, path)
+	fmt.Printf("%s✓ Config saved:%s %s\n", ui.BGreen, ui.Reset, path)
 	if ask("Install and start the systemd service? (y/n)", "y") == "y" {
 		if err := installService(path); err != nil {
 			fmt.Println(ui.Yellow+"Service install failed:"+ui.Reset, err)
-			fmt.Printf("You can run it manually: %sctunnel run%s\n", ui.Cyan, ui.Reset)
+			fmt.Printf("You can run it manually: %sctunnel run%s\n", ui.BCyan, ui.Reset)
 		}
 	}
 }
@@ -339,7 +542,7 @@ func installService(cfgPath string) error {
 			return fmt.Errorf("systemctl %s: %v: %s", strings.Join(a, " "), err, out)
 		}
 	}
-	fmt.Printf("%s✓ ctunnel service is running%s (systemctl status ctunnel)\n", ui.Green, ui.Reset)
+	fmt.Printf("%s✓ ctunnel service is running%s (systemctl status ctunnel)\n", ui.BGreen, ui.Reset)
 	return nil
 }
 
@@ -353,5 +556,5 @@ func serviceCmd(action string) {
 		fmt.Printf("%s%s%s: %v\n%s\n", ui.Red, action, ui.Reset, err, out)
 		return
 	}
-	fmt.Printf("%s✓ %s done%s\n", ui.Green, action, ui.Reset)
+	fmt.Printf("%s✓ %s done%s\n", ui.BGreen, action, ui.Reset)
 }

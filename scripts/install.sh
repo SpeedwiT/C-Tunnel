@@ -35,24 +35,25 @@ ok "Go: $(go version | awk '{print $3}')"
 # --- build -----------------------------------------------------------------
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-say "دریافت سورس (${BRANCH})"
-git clone --depth 1 -b "$BRANCH" "$REPO" "$work/src" >/dev/null 2>&1 || die "clone ناموفق"
+say "fetching source (${BRANCH})"
+git clone --depth 1 -b "$BRANCH" "$REPO" "$work/src" >/dev/null 2>&1 || die "git clone failed"
 cd "$work/src"
-VER=$(git rev-parse --short HEAD 2>/dev/null || echo dev)
-say "کامپایل"
+VER="1.0.0"
+say "compiling"
 CGO_ENABLED=0 GOFLAGS=-mod=mod go build -trimpath \
   -ldflags "-s -w -X main.version=${VER}" -o "$work/ctunnel" ./cmd/ctunnel
 install -m 0755 "$work/ctunnel" "$BIN"
-ok "نصب شد: $BIN (نسخه ${VER})"
+ok "installed: $BIN (v${VER})"
 
 echo
-"$BIN" version || true
-# Show the banner, but do NOT launch the interactive menu here: when installed via
-# `curl ... | bash`, stdin is the pipe (not a terminal), so the menu would have no input.
+ok "Setup complete. Opening the menu…"
+# Open the interactive menu now. When installed via `curl ... | bash`, stdin is the pipe,
+# so read the menu from the controlling terminal instead.
 if [ -t 0 ]; then
   "$BIN" menu || true
+elif [ -e /dev/tty ]; then
+  "$BIN" menu < /dev/tty || true
 else
-  "$BIN" -h 2>/dev/null | head -8 || true
+  "$BIN" -h 2>/dev/null | head -10 || true
+  ok "Run ${cyan}ctunnel${rst} in your shell to open the menu."
 fi
-echo
-ok "Setup is installed. Run ${cyan}ctunnel${rst} in your shell to open the menu."

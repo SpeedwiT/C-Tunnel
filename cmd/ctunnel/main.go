@@ -18,9 +18,10 @@ import (
 
 // set by the build (-ldflags "-X main.version=...").
 var (
-	version = "dev"
-	github  = "@SpeedwiT"
-	creator = "SpeedwiT"
+	version  = "1.0.0"
+	telegram = "@Speedw_IT"
+	github   = "SpeedwiT"
+	creator  = "SpeedwiT"
 )
 
 func main() {
@@ -58,7 +59,7 @@ func main() {
 	case "version", "-v", "--version":
 		fmt.Printf("C Tunnel %s (%s)\n", version, github)
 	case "-h", "--help":
-		fmt.Print(ui.Banner(version, github, creator))
+		fmt.Print(ui.Banner(version, telegram, github, creator))
 		usage()
 	default:
 		usage()
