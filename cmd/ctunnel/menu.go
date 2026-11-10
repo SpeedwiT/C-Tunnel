@@ -193,9 +193,10 @@ func manageMenu() {
   %s1%s) وضعیت و پینگ زنده
   %s2%s) Link Test (تست همهٔ ترنسپورت‌ها)
   %s3%s) تغییر ترنسپورت
-  %s4%s) ری‌استارت سرویس
-  %s5%s) بازگشت
-`, ui.Bold, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
+  %s4%s) اعلان تلگرام (وضعیت/پینگ)
+  %s5%s) ری‌استارت سرویس
+  %s6%s) بازگشت
+`, ui.Bold, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset, ui.Cyan, ui.Reset)
 		switch ask("انتخاب", "") {
 		case "1":
 			cmdStatus(nil)
@@ -205,8 +206,10 @@ func manageMenu() {
 			name := chooseTransport()
 			cmdSwitch([]string{name})
 		case "4":
+			configureTelegram()
+		case "5":
 			serviceCmd("restart")
-		case "5", "q":
+		case "6", "q":
 			return
 		}
 	}
@@ -224,6 +227,44 @@ func manageLinkTest() {
 		return
 	}
 	cmdLinktest(nil)
+}
+
+// configureTelegram enables/updates Telegram status notifications in the saved config.
+func configureTelegram() {
+	path := config.DefaultPath()
+	cfg, err := config.Load(path)
+	if err != nil {
+		fmt.Println(ui.Red+"کانفیگ خوانده نشد:"+ui.Reset, err)
+		return
+	}
+	if cfg.Telegram == nil {
+		cfg.Telegram = &config.Telegram{}
+	}
+	fmt.Printf("\n%s── اعلان تلگرام ──%s\n", ui.Bold, ui.Reset)
+	fmt.Println("یک ربات از @BotFather بساز، توکن را بگیر و آیدی چت را وارد کن.")
+	if ask("فعال باشد؟ (y/n)", map[bool]string{true: "y", false: "n"}[cfg.Telegram.Enabled]) != "y" {
+		cfg.Telegram.Enabled = false
+		_ = cfg.Save(path)
+		fmt.Println(ui.Yellow + "اعلان تلگرام غیرفعال شد." + ui.Reset)
+		return
+	}
+	cfg.Telegram.Enabled = true
+	cfg.Telegram.Token = ask("توکن ربات", cfg.Telegram.Token)
+	cfg.Telegram.ChatID = ask("آیدی چت (chat id)", cfg.Telegram.ChatID)
+	iv, _ := strconv.Atoi(ask("فاصلهٔ ارسال وضعیت (ثانیه)", nonZero(cfg.Telegram.Interval, 300)))
+	cfg.Telegram.Interval = iv
+	if err := cfg.Save(path); err != nil {
+		fmt.Println(ui.Red+"ذخیره ناموفق:"+ui.Reset, err)
+		return
+	}
+	fmt.Printf("%s✓ اعلان تلگرام فعال شد%s — برای اعمال: ری‌استارت سرویس.\n", ui.Green, ui.Reset)
+}
+
+func nonZero(v, def int) string {
+	if v == 0 {
+		return strconv.Itoa(def)
+	}
+	return strconv.Itoa(v)
 }
 
 // saveAndMaybeService writes the config and offers to install+start the systemd service.

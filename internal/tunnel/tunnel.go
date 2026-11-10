@@ -11,6 +11,7 @@ import (
 
 	"github.com/SpeedwiT/c-tunnel/internal/config"
 	"github.com/SpeedwiT/c-tunnel/internal/core"
+	"github.com/SpeedwiT/c-tunnel/internal/notify"
 	"github.com/SpeedwiT/c-tunnel/internal/transport"
 )
 
@@ -110,11 +111,42 @@ func RunExit(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
+
+	// Optional Telegram status/ping notifications.
+	notifier := notify.FromConfig(cfg)
+	var live struct {
+		mu sync.Mutex
+		s  *core.Session
+	}
+	peerName := cfg.Peer
+	if cfg.Transport == "crdv" {
+		peerName = "broker:" + cfg.Broker
+	}
+	if notifier != nil {
+		interval := 0
+		if cfg.Telegram != nil {
+			interval = cfg.Telegram.Interval
+		}
+		go notifier.Heartbeat(ctx, time.Duration(interval)*time.Second, func() notify.StatusLine {
+			live.mu.Lock()
+			s := live.s
+			live.mu.Unlock()
+			sl := notify.StatusLine{Transport: cfg.Transport, Mode: cfg.Mode, Peer: peerName}
+			if s != nil && !s.IsClosed() {
+				sl.Up = true
+				if p, err := s.Ping(); err == nil {
+					sl.Ping = p
+				}
+			}
+			return sl
+		})
+	}
+
 	backoff := time.Second
 	for ctx.Err() == nil {
 		raw, err := tr.Dial(cfg)
 		if err != nil {
-			log.Printf("exit dial %s: %v", cfg.Peer, err)
+			log.Printf("exit dial %s: %v", peerName, err)
 			sleep(ctx, backoff)
 			backoff = nextBackoff(backoff)
 			continue
@@ -132,12 +164,25 @@ func RunExit(ctx context.Context, cfg *config.Config) error {
 			sec.Close()
 			continue
 		}
-		log.Printf("C Tunnel exit connected to relay %s (transport=%s)", cfg.Peer, cfg.Transport)
+		log.Printf("C Tunnel exit connected to relay %s (transport=%s)", peerName, cfg.Transport)
 		backoff = time.Second
+		live.mu.Lock()
+		live.s = sess
+		live.mu.Unlock()
+		if notifier != nil {
+			p, _ := sess.Ping()
+			notifier.SendOnce(notify.Format(notify.StatusLine{Up: true, Transport: cfg.Transport, Mode: cfg.Mode, Peer: peerName, Ping: p}))
+		}
 		_ = sess.Serve(func(network, addr string) (net.Conn, error) {
 			return dialer.DialContext(ctx, network, addr)
 		})
+		live.mu.Lock()
+		live.s = nil
+		live.mu.Unlock()
 		log.Printf("tunnel dropped; reconnecting")
+		if notifier != nil {
+			notifier.SendOnce(notify.Format(notify.StatusLine{Up: false}))
+		}
 	}
 	return nil
 }
