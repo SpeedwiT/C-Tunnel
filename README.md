@@ -25,6 +25,18 @@ automatic fail-over between transports.
   carrier connection serves every forwarded port. The transport's only job is to look innocuous to
   DPI; it can never see or forge the traffic.
 
+## Two tunnel modes
+
+Chosen in the install menu; both carry the forwarded ports and run under the same secure core.
+
+- **Reverse (معکوس)** — the foreign server dials in to the Iran server. Iran needs **one open port**;
+  the foreign server needs none. This is the default and what the examples below show.
+- **Direct (مستقیم)** — the Iran server dials **out** to the foreign server, so Iran needs **no inbound
+  port at all**. It brings up a full **L3 IP tunnel** (a TUN interface carrying whole IP packets, GRE
+  encapsulation inside the Noise-authenticated core) so both hosts share a private subnet and anything
+  — not just the forwarded ports — can be routed. Mutual auth, a replay window and automatic MTU
+  discovery. *(The IP-tunnel data path lands next; mode selection, config and setup-code flow are in.)*
+
 ## Transports (roadmap)
 
 Ten transports in three selectable categories. ✅ = implemented & tested, ⏳ = planned.
@@ -34,8 +46,10 @@ Pick per node; `ctunnel transports` lists them grouped.
 - ✅ **C-TLS** — the tunnel inside an ordinary TLS 1.3 session (looks like HTTPS).
 - ✅ **C-WS** — WebSocket upgrade over TLS (looks like a normal WebSocket).
 - ✅ **C-HTTP** — plain HTTP/1.1 mimic (no TLS); core still encrypts.
-- ✅ **C-Spoof** — ClientHello/SNI fragmentation to defeat SNI-based DPI (no CDN).
-- ⏳ **C-H2Mux** — HTTP/2-shaped, API-like multiplexed traffic.
+- ✅ **C-Frag** — ClientHello/SNI fragmentation to defeat SNI-based DPI.
+- ⏳ **C-Spoof** — **forged source-address** transport: both servers must be *spoof-capable*
+  (اسپوف‌خور) and their datacenters must permit egress spoofing. Distinct from C-Frag and unrelated
+  to any CDN.
 
 **UDP — fastest on good links**
 - ✅ **C-QUIC** — HTTP/3-shaped QUIC; fastest, migrates across IP/port.
@@ -46,16 +60,45 @@ Pick per node; `ctunnel transports` lists them grouped.
 - ⏳ **C-ICMP** — tunnels over ping when only ICMP passes.
 - ⏳ **C-DNS** — tunnels over DNS/DoH, the last resort.
 
-7 of 10 are implemented and pass the end-to-end test; the three remaining are next.
+7 of 10 are implemented and pass the end-to-end test; the remaining three (C-Spoof, C-ICMP, C-DNS)
+are next. No CDN transport — Cloudflare/Arvan are CDNs and aren't needed here.
 
-(No CDN transport — not needed.) Plus: automatic fail-over between transports, a built-in transport **test/ping** screen, live
-network/server status, a stylish terminal install menu, one-line install with a *setup code* so the
-foreign server joins in one step, and systemd services.
+## The novel bit — seamless multi-transport
 
-## Build
+Existing tunnels pin one transport and *reconnect* (dropping every session) when it's throttled or
+blocked. C Tunnel's carrier layer is being built to run **several transports at once** (e.g. QUIC +
+KCP + TLS) and **migrate the live session across them at the packet level** — if one is choked mid-
+stream, traffic shifts to the others *without tearing the tunnel down*, and bandwidth can be bonded
+across them. `Manage → Link Test` already measures every transport's reachability and ping so the
+best set is chosen automatically. This live cross-transport migration is the feature no existing
+tunnel ships.
+
+## Install (one line, on each server — Iran first)
 
 ```bash
-go build -o ctunnel ./cmd/ctunnel
+curl -fsSL https://raw.githubusercontent.com/SpeedwiT/C-Tunnel/main/scripts/install.sh | sudo bash
+```
+
+It builds the binary, installs `ctunnel`, and opens the menu:
+
+1. **نصب سرور ایران (Relay)** — pick mode (reverse/direct), transport category + transport, ports;
+   it generates the PSK, writes the config, installs the systemd service, and prints a **setup code**.
+2. **نصب سرور خارج (Exit)** — paste the setup code; the foreign server is configured and started in
+   one step (`ctunnel join <code>`).
+3. **مدیریت** — live status + ping, **Link Test** (rank every transport by ping), change transport
+   without reinstalling (`ctunnel switch <name>`), restart.
+
+## CLI
+
+```bash
+ctunnel                      # interactive menu
+ctunnel setup-code           # (Iran) print the foreign-server join code
+ctunnel join <code>          # (abroad) configure from a setup code
+ctunnel status               # role, mode, forwards, live ping
+ctunnel linktest-server      # (Iran) serve Link Test probes
+ctunnel linktest -host <ip>  # (abroad) test every transport, ranked by ping
+ctunnel switch <transport>   # change transport without reinstalling
+ctunnel transports           # list transports grouped by category
 ```
 
 ## Quick manual run (two machines, same PSK)
@@ -69,7 +112,7 @@ Relay config (Iran):
 
 ```json
 {
-  "role": "relay", "transport": "ctls", "listen": ":7000",
+  "role": "relay", "mode": "reverse", "transport": "ctls", "listen": ":7000",
   "psk": "<shared key>",
   "forwards": [{ "name": "vless", "listen": 443, "target": "127.0.0.1:443" }]
 }
@@ -78,10 +121,7 @@ Relay config (Iran):
 Exit config (abroad):
 
 ```json
-{ "role": "exit", "transport": "ctls", "peer": "RELAY_IP:7000", "psk": "<shared key>" }
+{ "role": "exit", "mode": "reverse", "transport": "ctls", "peer": "RELAY_IP:7000", "psk": "<shared key>" }
 ```
 
 A user connecting to `RELAY_IP:443` is tunnelled to `127.0.0.1:443` on the exit.
-
-> The one-line installer and interactive menu (Iran/Abroad, setup code, transport test, status) are
-> being added next.

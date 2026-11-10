@@ -25,8 +25,8 @@ var (
 
 func main() {
 	if len(os.Args) < 2 {
-		usage()
-		os.Exit(2)
+		runMenu() // interactive terminal menu
+		return
 	}
 	switch os.Args[1] {
 	case "run":
@@ -35,14 +35,42 @@ func main() {
 		fmt.Println(config.GenPSK())
 	case "transports":
 		printTransports()
+	case "setup-code":
+		cmdSetupCode(os.Args[2:])
+	case "join":
+		cmdJoin(os.Args[2:])
+	case "linktest-server":
+		cmdLinktestServer(os.Args[2:])
+	case "linktest", "test":
+		cmdLinktest(os.Args[2:])
+	case "switch":
+		cmdSwitch(os.Args[2:])
+	case "status":
+		cmdStatus(os.Args[2:])
+	case "install-service":
+		installServiceFromArgs(os.Args[2:])
+	case "restart", "stop", "start":
+		serviceCmd(os.Args[1])
+	case "menu":
+		runMenu()
 	case "version", "-v", "--version":
 		fmt.Printf("C Tunnel %s (%s)\n", version, github)
-	case "menu", "-h", "--help":
+	case "-h", "--help":
 		fmt.Print(ui.Banner(version, github, creator))
 		usage()
 	default:
 		usage()
 		os.Exit(2)
+	}
+}
+
+func installServiceFromArgs(args []string) {
+	path := config.DefaultPath()
+	if len(args) == 2 && args[0] == "-config" {
+		path = args[1]
+	}
+	if err := installService(path); err != nil {
+		fatal(err)
 	}
 }
 
@@ -89,7 +117,16 @@ func printTransports() {
 func usage() {
 	fmt.Fprint(os.Stderr, `
 C Tunnel — usage:
+  ctunnel                      interactive install/manage menu
   ctunnel run [-config PATH]   run the node (role/transport from the config)
+  ctunnel setup-code [-addr H] print the code the foreign server joins with
+  ctunnel join <code>          configure the foreign server from a setup code
+  ctunnel status               show role, mode, forwards and a live ping
+  ctunnel linktest [-host IP]  test every transport and rank by ping (foreign side)
+  ctunnel linktest-server      serve the Link Test probes (Iran side)
+  ctunnel switch <transport>   change transport without reinstalling
+  ctunnel install-service      install + start the systemd service
+  ctunnel restart|stop|start   control the systemd service
   ctunnel genpsk               print a fresh pre-shared key
   ctunnel transports           list the available transports
   ctunnel version              show the version

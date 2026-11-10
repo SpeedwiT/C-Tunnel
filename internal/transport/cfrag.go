@@ -8,20 +8,20 @@ import (
 	"github.com/SpeedwiT/c-tunnel/internal/config"
 )
 
-func init() { register(cspoof{}) }
+func init() { register(cfrag{}) }
 
-// cspoof (C-Spoof) is C-TLS whose ClientHello is written in tiny TCP segments, so the SNI is split
+// cfrag (C-Frag) is C-TLS whose ClientHello is written in tiny TCP segments, so the SNI is split
 // across packets. DPI that extracts the SNI from a single packet can't see it, defeating SNI-based
 // blocking — without any CDN. The relay side is an ordinary TLS listener.
-type cspoof struct{}
+type cfrag struct{}
 
-func (cspoof) Name() string     { return "cspoof" }
-func (cspoof) Category() string { return CatTCP }
-func (cspoof) Description() string {
-	return "فرگمنت‌کردن ClientHello/SNI برای عبور از DPIِ SNI"
+func (cfrag) Name() string     { return "cfrag" }
+func (cfrag) Category() string { return CatTCP }
+func (cfrag) Description() string {
+	return "فرگمنت SNI/ClientHello برای عبور از DPIِ SNI"
 }
 
-func (cspoof) Listen(cfg *config.Config) (net.Listener, error) {
+func (cfrag) Listen(cfg *config.Config) (net.Listener, error) {
 	cert, err := selfSigned(sniOrDefault(cfg.SNI))
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (cspoof) Listen(cfg *config.Config) (net.Listener, error) {
 	})
 }
 
-func (cspoof) Dial(cfg *config.Config) (net.Conn, error) {
+func (cfrag) Dial(cfg *config.Config) (net.Conn, error) {
 	d := &net.Dialer{Timeout: 15 * time.Second, KeepAlive: 15 * time.Second}
 	raw, err := d.Dial("tcp", cfg.Peer)
 	if err != nil {
